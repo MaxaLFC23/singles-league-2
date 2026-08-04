@@ -69,10 +69,14 @@
   /* FIXTURE CARDS */
   .week-block { margin-bottom: 32px; }
   .week-header { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
-  .week-header.week-complete { color: var(--win); }
-  .week-header.week-complete::before { content: '✓'; font-size: 16px; }
-  .fixture-subheader { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 4px 0 8px; }
-  .fixture-subheader.results { margin-top: 18px; }
+  .week-btn.week-done { border-color: var(--win); color: var(--win); }
+  .week-btn.week-done.active { background: var(--win); color: #000; border-color: var(--win); }
+  .week-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .week-tab { padding: 6px 14px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; border-radius: 3px; transition: all .15s; font-family: 'Inter', sans-serif; }
+  .week-tab:hover { color: var(--text); border-color: var(--accent); }
+  .week-tab.active { background: var(--accent); color: #000; border-color: var(--accent); }
+  .week-panel .fixture-wrap:first-child { margin-top: 0; }
+  .week-empty { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); padding: 16px 4px; }
   .week-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .week-header.playoff-header { color: var(--accent); }
   .week-header.playoff-header::after { background: var(--accent); opacity: 0.3; }
@@ -905,33 +909,45 @@ function renderFixtures(weekFilter) {
 
   const showLeague = weekFilter==='all' || (weekFilter!=='playoffs' && !isNaN(weekFilter));
   const showPlayoffs = !readOnly && (weekFilter==='all' || weekFilter==='playoffs');
+  const totalWeeks = SEASONS[currentSeasonKey].weeks;
+  const fixtures = getFixtures();
+
+  // Mark the week-NUMBER FILTER BUTTONS green once that week has nothing left
+  // to play — checked across every week regardless of which one is currently
+  // being viewed, so the buttons stay accurate no matter what's on screen.
+  const isByeRow = f => f.home==='BYE'||f.away==='BYE';
+  const isDone = f => isByeRow(f)||!!f.winner||!!f.isDraw;
+  for (let w=1; w<=totalWeeks; w++){
+    const wf = fixtures.filter(f=>f.week===w);
+    const btn = document.querySelector(`.week-btn[data-week="${w}"]`);
+    if (btn) btn.classList.toggle('week-done', wf.length>0 && wf.every(isDone));
+  }
 
   // League weeks
   if(showLeague){
-    const totalWeeks = SEASONS[currentSeasonKey].weeks;
     const allWeeks = Array.from({length:totalWeeks}, (_,i)=>i+1);
     const weeks = weekFilter==='all'?allWeeks:[weekFilter];
-    const fixtures = getFixtures();
     weeks.forEach(w=>{
       const wf=fixtures.filter(f=>f.week===w);
       if(!wf.length) return;
-      const isByeRow = f => f.home==='BYE'||f.away==='BYE';
-      const isDone = f => isByeRow(f)||!!f.winner||!!f.isDraw;
       const pending = wf.filter(f=>!isDone(f));
       const completed = wf.filter(isDone);
-      const weekComplete = pending.length===0;
+      const defaultTab = pending.length ? 'pending' : 'completed';
 
       const block=document.createElement('div');
       block.className='week-block';
-      block.innerHTML=`<div class="week-header${weekComplete?' week-complete':''}">Week ${w}</div>`;
-      if(pending.length){
-        block.innerHTML+=`<div class="fixture-subheader">Still to Play</div>`;
-        pending.forEach(f=>{ block.innerHTML+=buildFixtureCard(f,false,readOnly); });
-      }
-      if(completed.length){
-        block.innerHTML+=`<div class="fixture-subheader results">Results</div>`;
-        completed.forEach(f=>{ block.innerHTML+=buildFixtureCard(f,false,readOnly); });
-      }
+      block.innerHTML=`
+        <div class="week-header">Week ${w}</div>
+        <div class="week-tabs">
+          <button class="week-tab ${defaultTab==='pending'?'active':''}" onclick="showWeekTab(${w},'pending',this)">Yet to Play (${pending.length})</button>
+          <button class="week-tab ${defaultTab==='completed'?'active':''}" onclick="showWeekTab(${w},'completed',this)">Completed (${completed.length})</button>
+        </div>
+        <div class="week-panel" id="week-${w}-pending" style="display:${defaultTab==='pending'?'block':'none'}">
+          ${pending.length ? pending.map(f=>buildFixtureCard(f,false,readOnly)).join('') : '<div class="week-empty">Nothing left to play this week.</div>'}
+        </div>
+        <div class="week-panel" id="week-${w}-completed" style="display:${defaultTab==='completed'?'block':'none'}">
+          ${completed.length ? completed.map(f=>buildFixtureCard(f,false,readOnly)).join('') : '<div class="week-empty">Nothing played yet.</div>'}
+        </div>`;
       container.appendChild(block);
     });
   }
@@ -1468,6 +1484,15 @@ function filterWeek(w,btn){
   document.querySelectorAll('.week-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderFixtures(w);
+}
+function showWeekTab(w, which, btn){
+  const pendingPanel=document.getElementById(`week-${w}-pending`);
+  const completedPanel=document.getElementById(`week-${w}-completed`);
+  if(pendingPanel) pendingPanel.style.display = which==='pending' ? 'block' : 'none';
+  if(completedPanel) completedPanel.style.display = which==='completed' ? 'block' : 'none';
+  const block=btn.closest('.week-block');
+  if(block) block.querySelectorAll('.week-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
 }
 function renderAll(){
   renderFixtures(currentWeekFilter);

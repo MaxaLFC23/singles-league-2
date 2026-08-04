@@ -69,6 +69,10 @@
   /* FIXTURE CARDS */
   .week-block { margin-bottom: 32px; }
   .week-header { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+  .week-header.week-complete { color: var(--win); }
+  .week-header.week-complete::before { content: '✓'; font-size: 16px; }
+  .fixture-subheader { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 4px 0 8px; }
+  .fixture-subheader.results { margin-top: 18px; }
   .week-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
   .week-header.playoff-header { color: var(--accent); }
   .week-header.playoff-header::after { background: var(--accent); opacity: 0.3; }
@@ -89,7 +93,7 @@
   .player.away { justify-content: flex-end; flex-direction: row-reverse; margin-left: auto; }
   .player-name { font-weight: 600; font-size: 15px; color: var(--text); }
   .player-name.winner { color: var(--win); }
-  .player-name.loser { color: var(--muted); }
+  .player-name.loser { color: var(--lose); }
   .player-avg { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
   .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 14px; color: #000; flex-shrink: 0; }
 
@@ -911,10 +915,23 @@ function renderFixtures(weekFilter) {
     weeks.forEach(w=>{
       const wf=fixtures.filter(f=>f.week===w);
       if(!wf.length) return;
+      const isByeRow = f => f.home==='BYE'||f.away==='BYE';
+      const isDone = f => isByeRow(f)||!!f.winner||!!f.isDraw;
+      const pending = wf.filter(f=>!isDone(f));
+      const completed = wf.filter(isDone);
+      const weekComplete = pending.length===0;
+
       const block=document.createElement('div');
       block.className='week-block';
-      block.innerHTML=`<div class="week-header">Week ${w}</div>`;
-      wf.forEach(f=>{ block.innerHTML+=buildFixtureCard(f,false,readOnly); });
+      block.innerHTML=`<div class="week-header${weekComplete?' week-complete':''}">Week ${w}</div>`;
+      if(pending.length){
+        block.innerHTML+=`<div class="fixture-subheader">Still to Play</div>`;
+        pending.forEach(f=>{ block.innerHTML+=buildFixtureCard(f,false,readOnly); });
+      }
+      if(completed.length){
+        block.innerHTML+=`<div class="fixture-subheader results">Results</div>`;
+        completed.forEach(f=>{ block.innerHTML+=buildFixtureCard(f,false,readOnly); });
+      }
       container.appendChild(block);
     });
   }

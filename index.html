@@ -134,22 +134,12 @@
   .star-picker .star { font-size: 22px; line-height: 1; color: var(--border); cursor: pointer; transition: color .1s, transform .1s; user-select: none; }
   .star-picker .star:hover { transform: scale(1.15); }
   .star-picker .star.filled { color: var(--accent); }
-  .ref-info { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; margin-top: -1px; border-top: 1px dashed var(--border); font-family: 'Inter', sans-serif; }
-  .ref-comment { position: relative; padding: 6px 20px 6px 0; border-bottom: 1px solid var(--border); }
-  .ref-comment:last-of-type { border-bottom: none; }
-  .ref-comment-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .ref-comment-del { position: absolute; top: 4px; right: 0; background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; padding: 2px 4px; }
-  .ref-comment-del:hover { color: var(--lose); }
-  .ref-comment-time { font-size: 10px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .ref-info { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 8px 14px; margin-top: -1px; border-top: 1px dashed var(--border); font-family: 'Inter', sans-serif; }
   .ref-name { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.3px; white-space: nowrap; }
   .ref-stars-display { display: flex; gap: 1px; }
   .ref-stars-display .star { font-size: 13px; line-height: 1; color: var(--border); }
   .ref-stars-display .star.filled { color: var(--accent); }
-  .ref-review { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 2px; }
-  .add-comment-toggle { align-self: flex-start; background: none; border: 1px dashed var(--border); color: var(--accent); font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 4px; font-family: 'Inter', sans-serif; }
-  .add-comment-toggle:hover { border-color: var(--accent); background: rgba(245,166,35,0.08); }
-  .comment-form { display: none; background: #131728; border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; margin-top: 8px; }
-  .comment-form.open { display: block; }
+  .ref-review { font-size: 11px; color: var(--muted); font-style: italic; flex: 1 1 100%; }
   .rf-save:hover { opacity: 0.85; }
   .rf-save:disabled { opacity: 0.5; cursor: not-allowed; }
   .rf-cancel { background: none; border: 1px solid var(--border); color: var(--muted); padding: 9px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all .15s; }
@@ -435,40 +425,11 @@ async function loadAllResults() {
 async function upsertResult(id, data) {
   await dbFetch('results', {
     method:'POST', headers:{'Prefer':'resolution=merge-duplicates'},
-    body: JSON.stringify({ fixture_id:id, winner:data.winner, home_score:data.homeScore, away_score:data.awayScore, checkout:data.checkout||null, home_avg:data.homeAvg||null, away_avg:data.awayAvg||null, date_played:data.date||null, referee:data.referee||null, ref_rating:data.refRating||null, ref_review:data.refReview||null, referee_comments:data.refereeComments||[], updated_at:new Date().toISOString() })
+    body: JSON.stringify({ fixture_id:id, winner:data.winner, home_score:data.homeScore, away_score:data.awayScore, checkout:data.checkout||null, home_avg:data.homeAvg||null, away_avg:data.awayAvg||null, date_played:data.date||null, referee:data.referee||null, ref_rating:data.refRating||null, ref_review:data.refReview||null, updated_at:new Date().toISOString() })
   });
 }
 async function deleteResult(id) {
   await dbFetch(`results?fixture_id=eq.${id}`, {method:'DELETE'});
-}
-async function addRefereeComment(fixtureId, name, rating, text) {
-  const existing = dbResults[fixtureId] || {};
-  let current = Array.isArray(existing.referee_comments) ? existing.referee_comments : [];
-  // Carry any old single-referee data into the array permanently the first
-  // time someone adds a new comment, so it never silently disappears.
-  if (!current.length && existing.referee) {
-    current = [{ name:existing.referee, rating:existing.ref_rating||0, text:existing.ref_review||'', at:null, legacy:true }];
-  }
-  const updated = [...current, { name, rating, text, at: new Date().toISOString() }];
-  await upsertResult(fixtureId, {
-    winner: existing.winner, homeScore: existing.home_score, awayScore: existing.away_score,
-    checkout: existing.checkout, homeAvg: existing.home_avg, awayAvg: existing.away_avg,
-    date: existing.date_played, referee: existing.referee, refRating: existing.ref_rating,
-    refReview: existing.ref_review, refereeComments: updated
-  });
-  dbResults[fixtureId] = {...existing, fixture_id:fixtureId, referee_comments: updated};
-}
-async function deleteRefereeComment(fixtureId, index) {
-  const existing = dbResults[fixtureId] || {};
-  const current = Array.isArray(existing.referee_comments) ? existing.referee_comments : [];
-  const updated = current.filter((_,i)=>i!==index);
-  await upsertResult(fixtureId, {
-    winner: existing.winner, homeScore: existing.home_score, awayScore: existing.away_score,
-    checkout: existing.checkout, homeAvg: existing.home_avg, awayAvg: existing.away_avg,
-    date: existing.date_played, referee: existing.referee, refRating: existing.ref_rating,
-    refReview: existing.ref_review, refereeComments: updated
-  });
-  dbResults[fixtureId] = {...existing, fixture_id:fixtureId, referee_comments: updated};
 }
 
 // ─── STATIC DATA ─────────────────────────────────────────────────────────────
@@ -565,14 +526,8 @@ function getFixtures() {
   if (currentSeasonKey !== 's3') return SEASONS[currentSeasonKey].fixtures;
   return BASE_FIXTURES.map(f => {
     const r = dbResults[f.id];
-    if (!r) return {...f, winner:null, homeScore:null, awayScore:null, checkout:null, homeAvg:null, awayAvg:null, date:'', refereeComments:[]};
-    // Old single-referee/rating/review data (pre-multi-comment) is shown as
-    // a legacy first comment rather than discarded.
-    let comments = Array.isArray(r.referee_comments) ? r.referee_comments : [];
-    if (r.referee && !comments.length) {
-      comments = [{ name:r.referee, rating:r.ref_rating||0, text:r.ref_review||'', at:null, legacy:true }];
-    }
-    return {...f, winner:r.winner, homeScore:r.home_score, awayScore:r.away_score, checkout:r.checkout, homeAvg:r.home_avg, awayAvg:r.away_avg, date:r.date_played||'', refereeComments:comments};
+    return r ? {...f, winner:r.winner, homeScore:r.home_score, awayScore:r.away_score, checkout:r.checkout, homeAvg:r.home_avg, awayAvg:r.away_avg, date:r.date_played||'', referee:r.referee||'', refRating:r.ref_rating||0, refReview:r.ref_review||''}
+             : {...f, winner:null, homeScore:null, awayScore:null, checkout:null, homeAvg:null, awayAvg:null, date:'', referee:'', refRating:0, refReview:''};
   });
 }
 
@@ -734,83 +689,6 @@ function buildStarDisplay(rating){
   }
   return `<div class="ref-stars-display">${stars}</div>`;
 }
-
-// ─── REFEREE COMMENTS (multiple per game, each with the reviewer's name) ──────
-function relTime(iso){
-  if(!iso) return '';
-  const d=Date.now()-new Date(iso).getTime(), h=Math.floor(d/3600000);
-  if(h<1) return 'just now';
-  if(h<24) return `${h}h ago`;
-  return `${Math.floor(h/24)}d ago`;
-}
-function buildRefereeCommentsSection(f){
-  const comments = Array.isArray(f.refereeComments) ? f.refereeComments : [];
-  const listHtml = comments.map((c,i)=>`
-    <div class="ref-comment">
-      <button class="ref-comment-del" onclick="removeComment('${f.id}',${i})" aria-label="Remove comment">✕</button>
-      <div class="ref-comment-head">
-        <span class="ref-name">🎯 ${escapeHtml(c.name||'Anonymous')}</span>
-        ${c.rating?buildStarDisplay(c.rating):''}
-        ${c.at?`<span class="ref-comment-time">${relTime(c.at)}</span>`:(c.legacy?'<span class="ref-comment-time">earlier</span>':'')}
-      </div>
-      ${c.text?`<div class="ref-review">"${escapeHtml(c.text)}"</div>`:''}
-    </div>`).join('');
-
-  return `
-    <div class="ref-info">
-      ${listHtml}
-      <button class="add-comment-toggle" onclick="toggleCommentForm('${f.id}')">+ Add a referee comment</button>
-      <div class="comment-form" id="comment-form-${f.id}">
-        <div class="rf-grid" style="margin-bottom:10px">
-          <div class="rf-field full">
-            <label class="rf-label">Your name</label>
-            <input class="rf-input" type="text" id="cf-name-${f.id}" list="referee-names" placeholder="e.g. Ollie">
-          </div>
-          <div class="rf-field">
-            <label class="rf-label">Rating</label>
-            ${buildStarPicker('new-'+f.id, 0)}
-          </div>
-          <div class="rf-field full">
-            <label class="rf-label">Comment</label>
-            <textarea class="rf-textarea" id="cf-text-${f.id}" placeholder="How did the match go, how was it reffed…"></textarea>
-          </div>
-        </div>
-        <div class="rf-actions">
-          <button class="rf-save" onclick="saveNewComment('${f.id}')">Post Comment</button>
-          <button class="rf-cancel" onclick="toggleCommentForm('${f.id}')">Cancel</button>
-        </div>
-      </div>
-    </div>`;
-}
-function toggleCommentForm(fixtureId){
-  const el=document.getElementById('comment-form-'+fixtureId);
-  if(el) el.classList.toggle('open');
-}
-async function saveNewComment(fixtureId){
-  const name=(document.getElementById('cf-name-'+fixtureId).value||'').trim();
-  if(!name){ showToast('Please enter your name','error'); return; }
-  const rating=parseInt(document.getElementById('rf-rating-new-'+fixtureId).value)||0;
-  const text=(document.getElementById('cf-text-'+fixtureId).value||'').trim();
-  const btn=document.querySelector(`#comment-form-${fixtureId} .rf-save`);
-  if(btn){btn.disabled=true;btn.textContent='Posting...';}
-  try{
-    await addRefereeComment(fixtureId, name, rating, text);
-    showToast('✓ Comment added');
-    renderAll();
-  }catch(e){
-    showToast('Failed to post comment — check connection','error');
-    if(btn){btn.disabled=false;btn.textContent='Post Comment';}
-  }
-}
-async function removeComment(fixtureId, index){
-  if(!confirm('Remove this comment?')) return;
-  try{
-    await deleteRefereeComment(fixtureId, index);
-    showToast('Comment removed');
-    renderAll();
-  }catch(e){ showToast('Failed to remove — check connection','error'); }
-}
-
 function showToast(msg,type='success'){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className=`toast ${type} show`;
@@ -841,6 +719,9 @@ async function saveResultForm(id, isPlayoff=false) {
   const homeAvg=parseFloat(document.getElementById('rf-havg-'+id).value)||null;
   const awayAvg=parseFloat(document.getElementById('rf-aavg-'+id).value)||null;
   const date=document.getElementById('rf-date-'+id).value;
+  const referee=(document.getElementById('rf-referee-'+id).value||'').trim();
+  const refRating=parseInt(document.getElementById('rf-rating-'+id).value)||null;
+  const refReview=(document.getElementById('rf-review-'+id).value||'').trim();
 
   let homeScore, awayScore;
   if(isPlayoff){
@@ -853,16 +734,11 @@ async function saveResultForm(id, isPlayoff=false) {
     awayScore=winner===f.away?1:0;
   }
 
-  // Re-saving a score must never wipe out referee comments already on this fixture.
-  const existing = dbResults[id] || {};
-
   const btn=document.querySelector(`#form-${id} .rf-save`);
   if(btn){btn.disabled=true;btn.textContent='Saving...';}
   try {
-    await upsertResult(id,{winner,homeScore,awayScore,checkout,homeAvg,awayAvg,date,
-      referee:existing.referee, refRating:existing.ref_rating, refReview:existing.ref_review,
-      refereeComments:existing.referee_comments});
-    dbResults[id]={...existing,fixture_id:id,winner,home_score:homeScore,away_score:awayScore,checkout,home_avg:homeAvg,away_avg:awayAvg,date_played:date};
+    await upsertResult(id,{winner,homeScore,awayScore,checkout,homeAvg,awayAvg,date,referee,refRating,refReview});
+    dbResults[id]={fixture_id:id,winner,home_score:homeScore,away_score:awayScore,checkout,home_avg:homeAvg,away_avg:awayAvg,date_played:date,referee,ref_rating:refRating,ref_review:refReview};
     closeForm(id);
     showToast(`✓ ${winner} wins saved`);
     renderAll();
@@ -977,6 +853,18 @@ function buildFixtureCard(f, isPlayoff=false, readOnly=false) {
           <label class="rf-label">Avg — ${awayDisplay}</label>
           <input class="rf-input" type="number" id="rf-aavg-${f.id}" step="0.01" placeholder="0.00" value="${f.awayAvg||''}">
         </div>
+        <div class="rf-field">
+          <label class="rf-label">Referee</label>
+          <input class="rf-input" type="text" id="rf-referee-${f.id}" list="referee-names" placeholder="e.g. Ollie" value="${escapeHtml(f.referee||'')}">
+        </div>
+        <div class="rf-field">
+          <label class="rf-label">Ref Rating</label>
+          ${buildStarPicker(f.id, f.refRating)}
+        </div>
+        <div class="rf-field full">
+          <label class="rf-label">Ref Review</label>
+          <textarea class="rf-textarea" id="rf-review-${f.id}" placeholder="How did they referee the match?">${escapeHtml(f.refReview||'')}</textarea>
+        </div>
       </div>
       <div class="rf-actions">
         <button class="rf-save" onclick="saveResultForm('${f.id}',${isPlayoff})">Save Result</button>
@@ -988,7 +876,13 @@ function buildFixtureCard(f, isPlayoff=false, readOnly=false) {
   const homeAv = (played&&f.home&&f.home!=='BYE'&&f.homeAvg)?`<div class="player-avg">${Number(f.homeAvg).toFixed(2)}</div>`:'';
   const awayAv = (played&&f.away&&f.away!=='BYE'&&f.awayAvg)?`<div class="player-avg">${Number(f.awayAvg).toFixed(2)}</div>`:'';
 
-  const commentsHtml = (played && !readOnly) ? buildRefereeCommentsSection(f) : '';
+  const hasRefInfo = played && (f.referee || f.refRating || f.refReview);
+  const refInfoHtml = hasRefInfo ? `
+    <div class="ref-info">
+      ${f.referee?`<span class="ref-name">🎯 Ref: ${escapeHtml(f.referee)}</span>`:''}
+      ${f.refRating?buildStarDisplay(f.refRating):''}
+      ${f.refReview?`<div class="ref-review">"${escapeHtml(f.refReview)}"</div>`:''}
+    </div>` : '';
 
   return `
     <div class="fixture-wrap">
@@ -1003,7 +897,7 @@ function buildFixtureCard(f, isPlayoff=false, readOnly=false) {
           <div style="text-align:right"><div class="${awayNameCls}">${awayDisplay}</div>${awayAv}</div>
         </div>
       </div>
-      ${commentsHtml}
+      ${refInfoHtml}
       ${formHtml}
     </div>`;
 }

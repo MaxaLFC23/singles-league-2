@@ -38,6 +38,9 @@
     flex-shrink: 0;
   }
   .theme-toggle:hover { border-color: var(--accent); }
+  .season-select { background: var(--card); border: 1px solid var(--border); color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+  .season-select:hover { border-color: var(--accent); }
+  .season-select:focus { outline: none; border-color: var(--accent); }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
@@ -306,10 +309,15 @@
 <header>
   <div>
     <div class="header-title">🎯 Singles League</div>
-    <div class="header-sub">Season 3 &nbsp;·&nbsp; 11 Players &nbsp;·&nbsp; 11 Weeks</div>
+    <div class="header-sub" id="header-sub">Season 3 &nbsp;·&nbsp; 11 Players &nbsp;·&nbsp; 11 Weeks</div>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
-    <div class="live-badge">SEASON IN PROGRESS</div>
+    <select class="season-select" id="season-select" onchange="switchSeason(this.value)" title="Switch season">
+      <option value="s1">Season 1</option>
+      <option value="s2">Season 2</option>
+      <option value="s3" selected>Season 3</option>
+    </select>
+    <div class="live-badge" id="live-badge">SEASON IN PROGRESS</div>
     <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
   </div>
 </header>
@@ -328,18 +336,18 @@
     <div class="week-filter">
       <span class="week-filter-label">Week</span>
       <button class="week-btn active" onclick="filterWeek('all',this)">All</button>
-      <button class="week-btn" onclick="filterWeek(1,this)">1</button>
-      <button class="week-btn" onclick="filterWeek(2,this)">2</button>
-      <button class="week-btn" onclick="filterWeek(3,this)">3</button>
-      <button class="week-btn" onclick="filterWeek(4,this)">4</button>
-      <button class="week-btn" onclick="filterWeek(5,this)">5</button>
-      <button class="week-btn" onclick="filterWeek(6,this)">6</button>
-      <button class="week-btn" onclick="filterWeek(7,this)">7</button>
-      <button class="week-btn" onclick="filterWeek(8,this)">8</button>
-      <button class="week-btn" onclick="filterWeek(9,this)">9</button>
-      <button class="week-btn" onclick="filterWeek(10,this)">10</button>
-      <button class="week-btn" onclick="filterWeek(11,this)">11</button>
-      <button class="week-btn" onclick="filterWeek('playoffs',this)">Playoffs</button>
+      <button class="week-btn" data-week="1" onclick="filterWeek(1,this)">1</button>
+      <button class="week-btn" data-week="2" onclick="filterWeek(2,this)">2</button>
+      <button class="week-btn" data-week="3" onclick="filterWeek(3,this)">3</button>
+      <button class="week-btn" data-week="4" onclick="filterWeek(4,this)">4</button>
+      <button class="week-btn" data-week="5" onclick="filterWeek(5,this)">5</button>
+      <button class="week-btn" data-week="6" onclick="filterWeek(6,this)">6</button>
+      <button class="week-btn" data-week="7" onclick="filterWeek(7,this)">7</button>
+      <button class="week-btn" data-week="8" onclick="filterWeek(8,this)">8</button>
+      <button class="week-btn" data-week="9" onclick="filterWeek(9,this)">9</button>
+      <button class="week-btn" data-week="10" onclick="filterWeek(10,this)">10</button>
+      <button class="week-btn" data-week="11" onclick="filterWeek(11,this)">11</button>
+      <button class="week-btn" id="playoffs-week-btn" onclick="filterWeek('playoffs',this)">Playoffs</button>
     </div>
     <div id="fixtures-list"></div>
   </div>
@@ -355,7 +363,7 @@
       <table>
         <thead><tr>
           <th>#</th><th>Player</th><th class="num">P</th><th class="num">W</th>
-          <th class="num">L</th><th class="num">Pts</th><th class="num">Avg</th>
+          <th class="num">L</th><th class="num">D</th><th class="num">Pts</th><th class="num">Avg</th>
           <th class="num">Ck</th><th class="num">Ck Total</th><th>Form</th>
         </tr></thead>
         <tbody id="table-body"></tbody>
@@ -415,8 +423,32 @@ async function deleteResult(id) {
 }
 
 // ─── STATIC DATA ─────────────────────────────────────────────────────────────
-const PLAYERS = ['Max','Shaun','Adam','James','Ste','Dan','Ollie','Mohan','Cedric','Ant','Liam'];
-const COLORS = { Max:'#f5a623',Shaun:'#4fc3f7',Adam:'#a78bfa',James:'#34d399',Ste:'#f87171',Dan:'#fbbf24',Ollie:'#60a5fa',Mohan:'#fb923c',Cedric:'#c084fc',Ant:'#2dd4bf',Liam:'#e879f9' };
+const SEASON_3_PLAYERS = ['Max','Shaun','Adam','James','Ste','Dan','Ollie','Mohan','Cedric','Ant','Liam'];
+const SEASON_3_COLORS = { Max:'#f5a623',Shaun:'#4fc3f7',Adam:'#a78bfa',James:'#34d399',Ste:'#f87171',Dan:'#fbbf24',Ollie:'#60a5fa',Mohan:'#fb923c',Cedric:'#c084fc',Ant:'#2dd4bf',Liam:'#e879f9' };
+
+// Season 1 & 2 are completed, historical seasons — fully static, no database
+// calls, no way to edit anything. Extracted and cross-checked against each
+// season's own League Table so the totals are known-accurate.
+const SEASON_1_PLAYERS = ['Adam','Shaun','Max','Mat','Ste','Ollie','James','Cedric','Dan','Mohan'];
+const SEASON_1_COLORS = { Adam:'#a78bfa',Shaun:'#4fc3f7',Max:'#f5a623',Mat:'#fb7185',Ste:'#f87171',Ollie:'#60a5fa',James:'#34d399',Cedric:'#c084fc',Dan:'#fbbf24',Mohan:'#fb923c' };
+const SEASON_1_FIXTURES = [{"id":"1-1","week":1,"home":"Dan","away":"Mohan","isDraw":true,"homeScore":1,"awayScore":1},{"id":"1-2","week":1,"home":"Adam","away":"Ollie","isDraw":true,"homeScore":1,"awayScore":1},{"id":"1-3","week":1,"home":"Ste","away":"Max","winner":"Max","homeScore":0,"awayScore":1,"checkout":2},{"id":"1-4","week":1,"home":"Mat","away":"Shaun","winner":"Mat","homeScore":1,"awayScore":0,"checkout":20},{"id":"1-5","week":1,"home":"Cedric","away":"James","isDraw":true,"homeScore":1,"awayScore":1},{"id":"2-1","week":2,"home":"Ollie","away":"Mohan","isDraw":true,"homeScore":1,"awayScore":1},{"id":"2-2","week":2,"home":"Cedric","away":"Dan","winner":"Dan","homeScore":0,"awayScore":1,"checkout":20},{"id":"2-3","week":2,"home":"Adam","away":"Max","winner":"Adam","homeScore":1,"awayScore":0,"checkout":20},{"id":"2-4","week":2,"home":"Ste","away":"Shaun","winner":"Ste","homeScore":1,"awayScore":0,"checkout":8},{"id":"2-5","week":2,"home":"Mat","away":"James","winner":"Mat","homeScore":1,"awayScore":0,"checkout":12},{"id":"3-1","week":3,"home":"Max","away":"Mohan","winner":"Max","homeScore":1,"awayScore":0,"checkout":6},{"id":"3-2","week":3,"home":"Ollie","away":"Dan","isDraw":true,"homeScore":1,"awayScore":1},{"id":"3-3","week":3,"home":"Adam","away":"Shaun","isDraw":true,"homeScore":1,"awayScore":1},{"id":"3-4","week":3,"home":"Ste","away":"James","isDraw":true,"homeScore":1,"awayScore":1},{"id":"3-5","week":3,"home":"Cedric","away":"Mat","winner":"Cedric","homeScore":1,"awayScore":0,"checkout":8},{"id":"4-1","week":4,"home":"Shaun","away":"Mohan","winner":"Shaun","homeScore":1,"awayScore":0,"checkout":39},{"id":"4-2","week":4,"home":"Max","away":"Dan","winner":"Max","homeScore":1,"awayScore":0,"checkout":40},{"id":"4-3","week":4,"home":"Cedric","away":"Ollie","winner":"Cedric","homeScore":1,"awayScore":0,"checkout":16},{"id":"4-4","week":4,"home":"Adam","away":"James","winner":"Adam","homeScore":1,"awayScore":0,"checkout":4},{"id":"4-5","week":4,"home":"Ste","away":"Mat","winner":"Mat","homeScore":0,"awayScore":1,"checkout":55},{"id":"5-1","week":5,"home":"James","away":"Mohan","isDraw":true,"homeScore":0,"awayScore":0},{"id":"5-2","week":5,"home":"Shaun","away":"Dan","winner":"Shaun","homeScore":1,"awayScore":0,"checkout":69},{"id":"5-3","week":5,"home":"Max","away":"Ollie","winner":"Ollie","homeScore":0,"awayScore":1,"checkout":32},{"id":"5-4","week":5,"home":"Adam","away":"Mat","winner":"Mat","homeScore":0,"awayScore":1,"checkout":28},{"id":"5-5","week":5,"home":"Cedric","away":"Ste","winner":"Ste","homeScore":0,"awayScore":1,"checkout":22},{"id":"6-1","week":6,"home":"Mat","away":"Mohan","winner":"Mat","homeScore":1,"awayScore":0,"checkout":32},{"id":"6-2","week":6,"home":"James","away":"Dan","winner":"James","homeScore":1,"awayScore":0,"checkout":6},{"id":"6-3","week":6,"home":"Shaun","away":"Ollie","isDraw":true,"homeScore":1,"awayScore":1},{"id":"6-4","week":6,"home":"Cedric","away":"Max","winner":"Max","homeScore":0,"awayScore":1,"checkout":30},{"id":"6-5","week":6,"home":"Adam","away":"Ste","winner":"Adam","homeScore":1,"awayScore":0,"checkout":8},{"id":"7-1","week":7,"home":"Ste","away":"Mohan","isDraw":true,"homeScore":1,"awayScore":1},{"id":"7-2","week":7,"home":"Mat","away":"Dan","isDraw":true,"homeScore":1,"awayScore":1},{"id":"7-3","week":7,"home":"James","away":"Ollie","winner":"James","homeScore":1,"awayScore":0,"checkout":16},{"id":"7-4","week":7,"home":"Shaun","away":"Max","winner":"Shaun","homeScore":1,"awayScore":0,"checkout":20},{"id":"7-5","week":7,"home":"Cedric","away":"Adam","isDraw":true,"homeScore":1,"awayScore":1},{"id":"8-1","week":8,"home":"Adam","away":"Mohan","winner":"Adam","homeScore":1,"awayScore":0,"checkout":4},{"id":"8-2","week":8,"home":"Ste","away":"Dan","winner":"Ste","homeScore":1,"awayScore":0,"checkout":10},{"id":"8-3","week":8,"home":"Mat","away":"Ollie","winner":"Ollie","homeScore":0,"awayScore":1,"checkout":20},{"id":"8-4","week":8,"home":"James","away":"Max","isDraw":true,"homeScore":1,"awayScore":1},{"id":"8-5","week":8,"home":"Cedric","away":"Shaun","winner":"Shaun","homeScore":0,"awayScore":1,"checkout":14},{"id":"9-1","week":9,"home":"Adam","away":"Dan","winner":"Adam","homeScore":1,"awayScore":0,"checkout":35},{"id":"9-2","week":9,"home":"Ste","away":"Ollie","winner":"Ste","homeScore":1,"awayScore":0,"checkout":40},{"id":"9-3","week":9,"home":"James","away":"Shaun","winner":"Shaun","homeScore":0,"awayScore":1,"checkout":18},{"id":"9-4","week":9,"home":"Cedric","away":"Mohan","isDraw":true,"homeScore":1,"awayScore":1},{"id":"9-5","week":9,"home":"Mat","away":"Max","winner":"Max","homeScore":0,"awayScore":1,"checkout":12}];
+const SEASON_1_SUMMARY = { leagueWinner:'Adam', playoffChampion:'Mat', runnerUp:'Max', elshiticoWinner:'Mohan', note:'Season 1 allowed draws — 3pts for a win, 1pt for a draw.' };
+
+const SEASON_2_PLAYERS = ['Max','Shaun','Adam','James','Ste','Dan','Ollie','Mohan','Cedric','Ant','Liam'];
+const SEASON_2_COLORS = { Max:'#f5a623',Shaun:'#4fc3f7',Adam:'#a78bfa',James:'#34d399',Ste:'#f87171',Dan:'#fbbf24',Ollie:'#60a5fa',Mohan:'#fb923c',Cedric:'#c084fc',Ant:'#2dd4bf',Liam:'#e879f9' };
+const SEASON_2_FIXTURES = [{"id":"1-1","week":1,"home":"Liam","away":"Ollie","winner":"Ollie","homeScore":0,"awayScore":1,"checkout":20,"homeAvg":36.67,"awayAvg":43},{"id":"1-2","week":1,"home":"Max","away":"BYE"},{"id":"1-3","week":1,"home":"Dan","away":"Cedric","winner":"Cedric","homeScore":0,"awayScore":1,"checkout":2,"homeAvg":17.59,"awayAvg":17.37},{"id":"1-4","week":1,"home":"Ant","away":"James","winner":"James","homeScore":0,"awayScore":1,"checkout":2,"homeAvg":12.96,"awayAvg":12.9},{"id":"1-5","week":1,"home":"Shaun","away":"Adam","winner":"Shaun","homeScore":1,"awayScore":0,"checkout":40,"homeAvg":39.26,"awayAvg":33.71},{"id":"1-6","week":1,"home":"Ste","away":"Mohan","winner":"Ste","homeScore":1,"awayScore":0,"checkout":40,"homeAvg":32.25,"awayAvg":28.6},{"id":"2-1","week":2,"home":"BYE","away":"Liam"},{"id":"2-2","week":2,"home":"Adam","away":"Ollie","winner":"Ollie","homeScore":0,"awayScore":1,"checkout":20,"homeAvg":27.88,"awayAvg":41.05},{"id":"2-3","week":2,"home":"James","away":"Max","winner":"James","homeScore":1,"awayScore":0,"checkout":33,"homeAvg":25.8,"awayAvg":23.67},{"id":"2-4","week":2,"home":"Cedric","away":"Shaun","winner":"Shaun","homeScore":0,"awayScore":1,"checkout":4,"homeAvg":21.21,"awayAvg":21},{"id":"2-5","week":2,"home":"Mohan","away":"Ant","winner":"Mohan","homeScore":1,"awayScore":0,"checkout":14,"homeAvg":29.13,"awayAvg":28},{"id":"2-6","week":2,"home":"Ste","away":"Dan","winner":"Ste","homeScore":1,"awayScore":0,"checkout":40,"homeAvg":31.14,"awayAvg":32.67},{"id":"3-1","week":3,"home":"Liam","away":"Adam","winner":"Adam","homeScore":0,"awayScore":1,"checkout":56,"homeAvg":41,"awayAvg":45.15},{"id":"3-2","week":3,"home":"BYE","away":"James"},{"id":"3-3","week":3,"home":"Ollie","away":"Cedric","winner":"Ollie","homeScore":1,"awayScore":0,"checkout":4,"homeAvg":25.8,"awayAvg":24.45},{"id":"3-4","week":3,"home":"Max","away":"Mohan","winner":"Max","homeScore":1,"awayScore":0,"checkout":18,"homeAvg":26.56,"awayAvg":22.75},{"id":"3-5","week":3,"home":"Shaun","away":"Ste","winner":"Shaun","homeScore":1,"awayScore":0,"checkout":12,"homeAvg":32.25,"awayAvg":29.1},{"id":"3-6","week":3,"home":"Ant","away":"Dan","winner":"Dan","homeScore":0,"awayScore":1,"checkout":6,"homeAvg":22.25,"awayAvg":24.41},{"id":"4-1","week":4,"home":"James","away":"Liam","winner":"Liam","homeScore":0,"awayScore":1,"checkout":14,"homeAvg":19.53,"awayAvg":19.63},{"id":"4-2","week":4,"home":"Cedric","away":"Adam","winner":"Cedric","homeScore":1,"awayScore":0,"checkout":4,"homeAvg":25.8,"awayAvg":22.67},{"id":"4-3","week":4,"home":"Mohan","away":"BYE"},{"id":"4-4","week":4,"home":"Ste","away":"Ollie","winner":"Ste","homeScore":1,"awayScore":0,"checkout":2,"homeAvg":21,"awayAvg":21.21},{"id":"4-5","week":4,"home":"Dan","away":"Max","winner":"Max","homeScore":0,"awayScore":1,"checkout":8,"homeAvg":20.69,"awayAvg":23.76},{"id":"4-6","week":4,"home":"Ant","away":"Shaun","winner":"Shaun","homeScore":0,"awayScore":1,"checkout":2,"homeAvg":15.63,"awayAvg":16.13},{"id":"5-1","week":5,"home":"Liam","away":"Cedric","winner":"Cedric","homeScore":0,"awayScore":1,"checkout":8,"homeAvg":24.25,"awayAvg":26.56},{"id":"5-2","week":5,"home":"James","away":"Mohan","winner":"James","homeScore":1,"awayScore":0,"checkout":12,"homeAvg":25.08,"awayAvg":21.67},{"id":"5-3","week":5,"home":"Adam","away":"Ste","winner":"Ste","homeScore":0,"awayScore":1,"checkout":32,"homeAvg":31,"awayAvg":60.2},{"id":"5-4","week":5,"home":"BYE","away":"Dan"},{"id":"5-5","week":5,"home":"Ollie","away":"Ant","winner":"Ollie","homeScore":1,"awayScore":0,"checkout":20,"homeAvg":28.22,"awayAvg":26.1},{"id":"5-6","week":5,"home":"Max","away":"Shaun","winner":"Max","homeScore":1,"awayScore":0,"checkout":16,"homeAvg":33.63,"awayAvg":41.05},{"id":"6-1","week":6,"home":"Mohan","away":"Liam","winner":"Mohan","homeScore":1,"awayScore":0,"checkout":2,"homeAvg":10.62,"awayAvg":10.54},{"id":"6-2","week":6,"home":"Ste","away":"Cedric","winner":"Ste","homeScore":1,"awayScore":0,"checkout":16,"homeAvg":39.26,"awayAvg":40.29},{"id":"6-3","week":6,"home":"Dan","away":"James","winner":"James","homeScore":0,"awayScore":1,"checkout":57,"homeAvg":37,"awayAvg":43},{"id":"6-4","week":6,"home":"Ant","away":"Adam","winner":"Adam","homeScore":0,"awayScore":1,"checkout":24,"homeAvg":30.57,"awayAvg":32.29},{"id":"6-5","week":6,"home":"Shaun","away":"BYE"},{"id":"6-6","week":6,"home":"Max","away":"Ollie","winner":"Ollie","homeScore":0,"awayScore":1,"checkout":32,"homeAvg":41.86,"awayAvg":41.05},{"id":"7-1","week":7,"home":"Liam","away":"Ste","winner":"Ste","homeScore":0,"awayScore":1,"checkout":20,"homeAvg":20.64,"awayAvg":22.58},{"id":"7-2","week":7,"home":"Mohan","away":"Dan","winner":"Dan","homeScore":0,"awayScore":1,"checkout":10,"homeAvg":31.22,"awayAvg":32.25},{"id":"7-3","week":7,"home":"Cedric","away":"Ant","winner":"Ant","homeScore":0,"awayScore":1,"checkout":6,"homeAvg":26.64,"awayAvg":25.8},{"id":"7-4","week":7,"home":"James","away":"Shaun","winner":"Shaun","homeScore":0,"awayScore":1,"checkout":40,"homeAvg":33.25,"awayAvg":36.12},{"id":"7-5","week":7,"home":"Adam","away":"Max","winner":"Adam","homeScore":1,"awayScore":0,"checkout":4,"homeAvg":13.68,"awayAvg":14.24},{"id":"7-6","week":7,"home":"BYE","away":"Ollie"},{"id":"8-1","week":8,"home":"Dan","away":"Liam","winner":"Dan","homeScore":1,"awayScore":0,"checkout":2,"homeAvg":9.92,"awayAvg":9.65},{"id":"8-2","week":8,"home":"Ant","away":"Ste","winner":"Ant","homeScore":1,"awayScore":0,"checkout":36,"homeAvg":37.63,"awayAvg":32.63},{"id":"8-3","week":8,"home":"Shaun","away":"Mohan","winner":"Shaun","homeScore":1,"awayScore":0,"checkout":53,"homeAvg":39.26,"awayAvg":32.63},{"id":"8-4","week":8,"home":"Max","away":"Cedric","winner":"Cedric","homeScore":0,"awayScore":1,"checkout":24,"homeAvg":24.42,"awayAvg":26.56},{"id":"8-5","week":8,"home":"Ollie","away":"James","winner":"Ollie","homeScore":1,"awayScore":0,"checkout":8,"homeAvg":22.02,"awayAvg":21.92},{"id":"8-6","week":8,"home":"BYE","away":"Adam"},{"id":"9-1","week":9,"home":"Liam","away":"Ant","winner":"Ant","homeScore":0,"awayScore":1,"checkout":32,"homeAvg":29.9,"awayAvg":32.25},{"id":"9-2","week":9,"home":"Dan","away":"Shaun","winner":"Shaun","homeScore":0,"awayScore":1,"checkout":16,"homeAvg":26.4,"awayAvg":32.25},{"id":"9-3","week":9,"home":"Ste","away":"Max","winner":"Max","homeScore":0,"awayScore":1,"checkout":16,"homeAvg":32.75,"awayAvg":41.05},{"id":"9-4","week":9,"home":"Mohan","away":"Ollie","winner":"Ollie","homeScore":0,"awayScore":1,"checkout":60,"homeAvg":37.14,"awayAvg":43},{"id":"9-5","week":9,"home":"Cedric","away":"BYE"},{"id":"9-6","week":9,"home":"James","away":"Adam","winner":"Adam","homeScore":0,"awayScore":1,"checkout":2,"homeAvg":26.82,"awayAvg":25.8},{"id":"10-1","week":10,"home":"Shaun","away":"Liam","winner":"Liam","homeScore":0,"awayScore":1,"checkout":20,"homeAvg":31.89,"awayAvg":33.44},{"id":"10-2","week":10,"home":"Max","away":"Ant","winner":"Max","homeScore":1,"awayScore":0,"checkout":2,"homeAvg":18.43,"awayAvg":17.35},{"id":"10-3","week":10,"home":"Ollie","away":"Dan","winner":"Ollie","homeScore":1,"awayScore":0,"checkout":30,"homeAvg":25.8,"awayAvg":26.73},{"id":"10-4","week":10,"home":"BYE","away":"Ste"},{"id":"10-5","week":10,"home":"Adam","away":"Mohan","winner":"Adam","homeScore":1,"awayScore":0,"checkout":10,"homeAvg":40.31,"awayAvg":35.63},{"id":"10-6","week":10,"home":"James","away":"Cedric","winner":"James","homeScore":1,"awayScore":0,"checkout":4,"homeAvg":28.22,"awayAvg":29.4},{"id":"11-1","week":11,"home":"Liam","away":"Max","winner":"Max","homeScore":0,"awayScore":1,"checkout":26,"homeAvg":35.13,"awayAvg":33.44},{"id":"11-2","week":11,"home":"Shaun","away":"Ollie","winner":"Ollie","homeScore":0,"awayScore":1,"checkout":2,"homeAvg":21.14,"awayAvg":22.02},{"id":"11-3","week":11,"home":"Ant","away":"BYE"},{"id":"11-4","week":11,"home":"Dan","away":"Adam","winner":"Adam","homeScore":0,"awayScore":1,"checkout":2,"homeAvg":12.04,"awayAvg":12.46},{"id":"11-5","week":11,"home":"Ste","away":"James","winner":"Ste","homeScore":1,"awayScore":0,"checkout":2,"homeAvg":10.75,"awayAvg":10.85},{"id":"11-6","week":11,"home":"Mohan","away":"Cedric","winner":"Mohan","homeScore":1,"awayScore":0,"checkout":16,"homeAvg":21.07,"awayAvg":21.5}];
+const SEASON_2_SUMMARY = { leagueWinner:'Ollie', playoffChampion:'Ollie', runnerUp:'Ste', thirdPlace:'Max', elshiticoWinner:null };
+
+// Master season registry. currentSeasonKey selects which of these is active;
+// s3 is the only one wired to the live Supabase database.
+const SEASONS = {
+  s1: { label:'Season 1', live:false, players:SEASON_1_PLAYERS, colors:SEASON_1_COLORS, fixtures:SEASON_1_FIXTURES, summary:SEASON_1_SUMMARY, weeks:9 },
+  s2: { label:'Season 2', live:false, players:SEASON_2_PLAYERS, colors:SEASON_2_COLORS, fixtures:SEASON_2_FIXTURES, summary:SEASON_2_SUMMARY, weeks:11 },
+  s3: { label:'Season 3', live:true,  players:SEASON_3_PLAYERS, colors:SEASON_3_COLORS, weeks:11 },
+};
+let currentSeasonKey = 's3';
+let PLAYERS = SEASONS.s3.players;
+let COLORS = SEASONS.s3.colors;
 
 const BASE_FIXTURES = [
   {id:'1-1',week:1,home:'Mohan',away:'Cedric'},{id:'1-2',week:1,home:'Ant',away:'Dan'},
@@ -481,6 +513,7 @@ let currentWeekFilter = 'all';
 let openFormId = null;
 
 function getFixtures() {
+  if (currentSeasonKey !== 's3') return SEASONS[currentSeasonKey].fixtures;
   return BASE_FIXTURES.map(f => {
     const r = dbResults[f.id];
     return r ? {...f, winner:r.winner, homeScore:r.home_score, awayScore:r.away_score, checkout:r.checkout, homeAvg:r.home_avg, awayAvg:r.away_avg, date:r.date_played||'', referee:r.referee||'', refRating:r.ref_rating||0, refReview:r.ref_review||''}
@@ -555,13 +588,14 @@ async function seedIfNeeded() {
 function computeStandings() {
   const fixtures = getFixtures();
   const stats = {};
-  PLAYERS.forEach(p => { stats[p] = {name:p,p:0,w:0,l:0,pts:0,avgSum:0,avgCount:0,ck:0,ckTotal:0,highCk:0}; });
+  PLAYERS.forEach(p => { stats[p] = {name:p,p:0,w:0,l:0,d:0,pts:0,avgSum:0,avgCount:0,ck:0,ckTotal:0,highCk:0}; });
   fixtures.forEach(f => {
-    if (f.home==='BYE'||f.away==='BYE'||!f.winner) return;
+    if (f.home==='BYE'||f.away==='BYE'||(!f.winner&&!f.isDraw)) return;
     const h=stats[f.home], a=stats[f.away];
     if (!h||!a) return;
     h.p++; a.p++;
-    if (f.winner===f.home){h.w++;h.pts+=3;a.l++;}else{a.w++;a.pts+=3;h.l++;}
+    if (f.isDraw) { h.d++; a.d++; h.pts+=1; a.pts+=1; }
+    else if (f.winner===f.home){h.w++;h.pts+=3;a.l++;}else{a.w++;a.pts+=3;h.l++;}
     if (f.checkout && stats[f.winner]) {
       stats[f.winner].ck++;
       stats[f.winner].ckTotal += f.checkout;
@@ -577,9 +611,10 @@ function computeStandings() {
   function h2h(nameA, nameB) {
     let aWins=0, bWins=0;
     fixtures.forEach(f => {
-      if (f.home==='BYE'||f.away==='BYE'||!f.winner) return;
+      if (f.home==='BYE'||f.away==='BYE'||(!f.winner&&!f.isDraw)) return;
       const involves = (f.home===nameA&&f.away===nameB)||(f.home===nameB&&f.away===nameA);
       if (!involves) return;
+      if (f.isDraw) return;
       if (f.winner===nameA) aWins++;
       else bWins++;
     });
@@ -664,6 +699,7 @@ function closeForm(id){
 }
 
 async function saveResultForm(id, isPlayoff=false) {
+  if (currentSeasonKey !== 's3') { showToast('Past seasons are read-only','error'); return; }
   const allFixtures = isPlayoff ? getPlayoffFixtures() : getFixtures();
   const f = allFixtures.find(x=>x.id===id);
   if(!f) return;
@@ -703,6 +739,7 @@ async function saveResultForm(id, isPlayoff=false) {
 }
 
 async function clearResult(id){
+  if (currentSeasonKey !== 's3') { showToast('Past seasons are read-only','error'); return; }
   if(!confirm('Clear this result? This will update for all viewers.'))return;
   try{
     await deleteResult(id);
@@ -714,23 +751,23 @@ async function clearResult(id){
 }
 
 // ─── BUILD FIXTURE CARD HTML ──────────────────────────────────────────────────
-function buildFixtureCard(f, isPlayoff=false) {
+function buildFixtureCard(f, isPlayoff=false, readOnly=false) {
   const isBye=f.home==='BYE'||f.away==='BYE';
   const isTbd=!f.home||!f.away; // playoff with unknown players yet
-  const played=!!f.winner;
-  const homeWin=played&&f.winner===f.home;
-  const awayWin=played&&f.winner===f.away;
+  const played=!!f.winner||!!f.isDraw;
+  const homeWin=played&&!f.isDraw&&f.winner===f.home;
+  const awayWin=played&&!f.isDraw&&f.winner===f.away;
 
   let fixCls='fixture';
   if(isPlayoff) fixCls+=' playoff-fixture';
   if(isBye) fixCls+=' bye';
   else if(isTbd) fixCls+=' tbd-fixture';
-  else if(!played) fixCls+=' pending-fixture';
+  else if(!played) fixCls+= readOnly ? '' : ' pending-fixture';
   else if(homeWin) fixCls+=' winner-home';
   else if(awayWin) fixCls+=' winner-away';
 
-  const homeNameCls=played?(homeWin?'player-name winner':'player-name loser'):'player-name';
-  const awayNameCls=played?(awayWin?'player-name winner':'player-name loser'):'player-name';
+  const homeNameCls=played?(f.isDraw?'player-name':(homeWin?'player-name winner':'player-name loser')):'player-name';
+  const awayNameCls=played?(f.isDraw?'player-name':(awayWin?'player-name winner':'player-name loser')):'player-name';
 
   const homeDisplay=f.home||'TBD';
   const awayDisplay=f.away||'TBD';
@@ -743,21 +780,22 @@ function buildFixtureCard(f, isPlayoff=false) {
   } else if(played){
     centerHtml=`<div class="match-center">
       <div class="score">${f.homeScore} – ${f.awayScore}</div>
+      ${f.isDraw?'<span class="checkout-badge" style="background:var(--muted)">DRAW</span>':''}
       ${f.checkout?`<span class="checkout-badge">CK ${f.checkout}</span>`:''}
       ${isPlayoff?'<span class="bo3-badge">BO3</span>':''}
       ${f.date?`<div class="match-meta">${f.date}</div>`:''}
-      <button class="edit-btn" onclick="event.stopPropagation();openForm('${f.id}')">Edit</button>
+      ${readOnly?'':`<button class="edit-btn" onclick="event.stopPropagation();openForm('${f.id}')">Edit</button>`}
     </div>`;
   } else {
     centerHtml=`<div class="match-center">
-      <div class="score pending">TBC</div>
+      <div class="score pending">${readOnly?'Not played':'TBC'}</div>
       ${isPlayoff?'<span class="bo3-badge">BO3</span>':''}
       ${f.date?`<div class="match-meta">${f.date}</div>`:''}
-      <div class="enter-result-hint">+ Enter result</div>
+      ${readOnly?'':'<div class="enter-result-hint">+ Enter result</div>'}
     </div>`;
   }
 
-  const clickAttr=(!isBye&&!isTbd&&!played)?`onclick="openForm('${f.id}')"`:'' ;
+  const clickAttr=(!readOnly&&!isBye&&!isTbd&&!played)?`onclick="openForm('${f.id}')"`:'' ;
 
   // Score fields for Bo3 playoff form
   const scoreFields = isPlayoff ? `
@@ -777,7 +815,7 @@ function buildFixtureCard(f, isPlayoff=false) {
   const playerOptions = [homeDisplay,awayDisplay].filter(p=>p!=='BYE'&&p!=='TBD')
     .map(p=>`<option value="${p}" ${f.winner===p?'selected':''}>${p}</option>`).join('');
 
-  const formHtml = (!isBye&&!isTbd) ? `
+  const formHtml = (!readOnly&&!isBye&&!isTbd) ? `
     <div class="result-form" id="form-${f.id}">
       <div class="rf-title">${homeDisplay} vs ${awayDisplay}${isPlayoff?' — '+f.label:''}</div>
       <div class="rf-grid">
@@ -859,25 +897,30 @@ function renderFixtures(weekFilter) {
   currentWeekFilter = weekFilter;
   const container = document.getElementById('fixtures-list');
   container.innerHTML = '';
+  const readOnly = currentSeasonKey !== 's3';
 
   const showLeague = weekFilter==='all' || (weekFilter!=='playoffs' && !isNaN(weekFilter));
-  const showPlayoffs = weekFilter==='all' || weekFilter==='playoffs';
+  const showPlayoffs = !readOnly && (weekFilter==='all' || weekFilter==='playoffs');
 
   // League weeks
   if(showLeague){
-    const weeks = weekFilter==='all'?[1,2,3,4,5,6,7,8,9,10,11]:[weekFilter];
+    const totalWeeks = SEASONS[currentSeasonKey].weeks;
+    const allWeeks = Array.from({length:totalWeeks}, (_,i)=>i+1);
+    const weeks = weekFilter==='all'?allWeeks:[weekFilter];
     const fixtures = getFixtures();
     weeks.forEach(w=>{
       const wf=fixtures.filter(f=>f.week===w);
+      if(!wf.length) return;
       const block=document.createElement('div');
       block.className='week-block';
       block.innerHTML=`<div class="week-header">Week ${w}</div>`;
-      wf.forEach(f=>{ block.innerHTML+=buildFixtureCard(f,false); });
+      wf.forEach(f=>{ block.innerHTML+=buildFixtureCard(f,false,readOnly); });
       container.appendChild(block);
     });
   }
 
-  // Playoff rounds
+  // Playoff rounds — only meaningful for the live season; historical seasons
+  // show their playoff story as a simple summary on the Playoffs tab instead.
   if(showPlayoffs){
     const poFixtures=getPlayoffFixtures();
     const rounds=[
@@ -893,14 +936,14 @@ function renderFixtures(weekFilter) {
       block.innerHTML=`<div class="week-header playoff-header">${r.label}</div>`;
       r.ids.forEach(id=>{
         const f=poFixtures.find(x=>x.id===id);
-        if(f) block.innerHTML+=buildFixtureCard(f,true);
+        if(f) block.innerHTML+=buildFixtureCard(f,true,false);
       });
       container.appendChild(block);
     });
   }
 
   // Reopen form if needed
-  if(openFormId){
+  if(!readOnly && openFormId){
     const el=document.getElementById('form-'+openFormId);
     if(el)el.classList.add('open');
   }
@@ -923,6 +966,7 @@ function renderTable(){
         <td class="rank-cell" style="color:${rankColor}">${pos}</td>
         <td><div class="team-cell">${avatarHtml(p.name)}<span>${p.name}</span></div></td>
         <td class="num">${p.p}</td><td class="num">${p.w}</td><td class="num">${p.l}</td>
+        <td class="num">${p.d||0}</td>
         <td class="num pts-cell">${p.pts}</td>
         <td class="num avg-cell">${p.avg>0?p.avg.toFixed(2):'—'}</td>
         <td class="num">${p.ck||'—'}</td>
@@ -994,6 +1038,34 @@ function showPlayerDetail(name,cardEl){
 
 // ─── RENDER PLAYOFF BRACKET ───────────────────────────────────────────────────
 function renderPlayoffs(){
+  if (currentSeasonKey !== 's3') {
+    const s = SEASONS[currentSeasonKey].summary;
+    const label = SEASONS[currentSeasonKey].label;
+    function fact(trophy, title, name) {
+      if (!name) return '';
+      const c = COLORS[name] || '#888';
+      return `<div class="hof-card champion" style="max-width:220px">
+        <div class="hof-trophy">${trophy}</div>
+        <div class="hof-avatar" style="background:${c}">${initials(name)}</div>
+        <div class="hof-award">${title}</div>
+        <div class="hof-player">${name}</div>
+      </div>`;
+    }
+    document.getElementById('playoff-bracket').innerHTML = `
+      <div style="margin-bottom:16px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">
+        ${label} is complete — shown here as a simple record, not the interactive bracket.
+      </div>
+      <div class="hof-grid" style="max-width:900px">
+        ${fact('🏆','League Winner', s.leagueWinner)}
+        ${fact('🎯','Playoff Champion', s.playoffChampion)}
+        ${fact('🥈','Runner-up', s.runnerUp)}
+        ${fact('🥉','Third Place', s.thirdPlace)}
+        ${fact('💩','El Shitico Winner', s.elshiticoWinner)}
+      </div>
+      ${s.note?`<div style="margin-top:18px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">${s.note}</div>`:''}
+    `;
+    return;
+  }
   const pf=getPlayoffFixtures();
 
   function getF(id){return pf.find(f=>f.id===id);}
@@ -1338,6 +1410,34 @@ function applyTheme() {
     const btn = document.getElementById('theme-toggle');
     if (btn) btn.textContent = '☀️';
   }
+}
+
+function switchSeason(key){
+  currentSeasonKey = key;
+  const s = SEASONS[key];
+  PLAYERS = s.players;
+  COLORS = s.colors;
+  currentWeekFilter = 'all';
+  openFormId = null;
+
+  // Header text + live badge
+  document.getElementById('header-sub').innerHTML = `${s.label} &nbsp;·&nbsp; ${s.players.length} Players &nbsp;·&nbsp; ${s.weeks} Weeks`;
+  const liveBadge = document.getElementById('live-badge');
+  liveBadge.style.display = s.live ? '' : 'none';
+
+  // Show only the week buttons that exist for this season, and hide the
+  // Playoffs filter for historical seasons (their playoff story lives on
+  // the Playoffs tab as a simple summary instead).
+  document.querySelectorAll('.week-btn[data-week]').forEach(b=>{
+    const w = parseInt(b.dataset.week, 10);
+    b.style.display = (w <= s.weeks) ? '' : 'none';
+  });
+  document.getElementById('playoffs-week-btn').style.display = s.live ? '' : 'none';
+  document.querySelectorAll('.week-btn').forEach(b=>b.classList.remove('active'));
+  const allBtn = Array.from(document.querySelectorAll('.week-btn')).find(b=>b.textContent==='All');
+  if (allBtn) allBtn.classList.add('active');
+
+  renderAll();
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────────────────

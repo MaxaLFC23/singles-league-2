@@ -1,845 +1,1398 @@
 <!DOCTYPE html>
-<html lang="en-GB">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>Ralph's Day</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#141926">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Singles League – Season 3</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap');
+
   :root {
-    --bg: #141926; --panel: #1b2133; --panel-b: #262e45; --panel-b2: #333c58;
-    --ink: #f3ede1; --dim: #8b93a7; --dim2: #9aa3ba;
-    --amber: #ffc86b; --blue: #7fb4ff; --red: #ff7a6e; --red2: #ff9a90;
-    --green: #8fd6a8; --btn: #31406b;
+    --bg: #0f1117; --surface: #181c27; --card: #1e2334; --border: #2a3050;
+    --accent: #f5a623; --accent2: #4fc3f7; --win: #22c55e; --lose: #ef4444;
+    --pending: #64748b; --text: #e2e8f0; --muted: #64748b;
   }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; }
-  html, body { height: 100%; }
-  body {
-    background: var(--bg); color: var(--ink);
-    font-family: 'Atkinson Hyperlegible', sans-serif;
-    max-width: 480px; margin: 0 auto;
-    padding-bottom: env(safe-area-inset-bottom);
+
+  body.light {
+    --bg: #f4f6fa; --surface: #ffffff; --card: #ffffff; --border: #dde1ec;
+    --accent: #e0920a; --accent2: #0891b2; --win: #16a34a; --lose: #dc2626;
+    --pending: #94a3b8; --text: #1e2334; --muted: #64748b;
   }
-  button { font-family: inherit; color: var(--ink); cursor: pointer; }
-  button:active { transform: scale(0.96); }
-  .display { font-family: 'Fredoka', sans-serif; }
 
-  header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 8px; padding-top: calc(16px + env(safe-area-inset-top)); }
-  .title { font-family: 'Fredoka', sans-serif; font-size: 20px; font-weight: 600; }
-  #clock { color: var(--dim); font-family: 'Fredoka', sans-serif; }
+  body.light header { background: linear-gradient(135deg, #ffffff 0%, #eef1f8 100%); }
+  body.light .result-form { background: #f8faff; }
+  body.light .rf-input, body.light .rf-select { background: #f4f6fa; }
+  body.light tbody tr:hover { background: #f0f4ff; }
+  body.light .hof-card { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 
-  main { padding: 8px 16px 100px; }
+  .theme-toggle {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 16px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color .15s, background .15s;
+    flex-shrink: 0;
+  }
+  .theme-toggle:hover { border-color: var(--accent); }
 
-  .hero { position: relative; width: 220px; margin: 4px auto 8px; }
-  .hero-inner { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 30px; }
-  .hero-big { font-size: 34px; font-weight: 600; line-height: 1.1; }
-  .hero-label { font-size: 13px; color: var(--dim2); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px; }
-  .hero-sub { font-size: 13px; color: var(--dim2); margin-top: 6px; }
-  .overdue { color: var(--red) !important; animation: pulse 1.6s infinite; }
-  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
 
-  .strip { display: flex; justify-content: space-between; background: var(--panel); border: 1px solid #2a3248; border-radius: 14px; padding: 12px 14px; font-size: 14px; margin-bottom: 12px; }
-  .strip b.due { color: var(--red); }
+  header { background: linear-gradient(135deg, #0f1117 0%, #1a1f35 100%); border-bottom: 2px solid var(--accent); padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .header-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(28px,5vw,48px); letter-spacing: 3px; color: var(--accent); line-height: 1; }
+  .header-sub { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); letter-spacing: 2px; margin-top: 4px; text-transform: uppercase; }
+  .live-badge { background: var(--accent); color: #000; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: 1px; padding: 4px 10px; border-radius: 2px; }
 
-  .sleep-btn { width: 100%; padding: 18px 0; border-radius: 16px; border: 1px solid #3d4a75; background: var(--btn); font-size: 17px; font-weight: 600; font-family: 'Fredoka', sans-serif; margin-bottom: 16px; }
-  .sleep-btn.asleep { background: #2d3a55; }
+  .tabs { display: flex; padding: 0 32px; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .tab { padding: 14px 22px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; transition: color .15s, border-color .15s; text-transform: uppercase; background: none; border-top: none; border-left: none; border-right: none; font-family: 'Inter', sans-serif; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
-  .grid-label { font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: 1.2px; margin: 0 2px 8px; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-  .big-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 8px; border-radius: 16px; font-size: 14px; font-weight: 600; background: #252c40; border: 1px solid var(--panel-b2); }
-  .big-btn .ico { font-size: 26px; }
-  .big-btn.good { background: #1f3a2d; border-color: #3a6b4f; }
-  .big-btn.bad { background: #3d2530; border-color: #6b3a48; }
+  main { padding: 28px 32px; max-width: 1100px; margin: 0 auto; }
+  .section { display: none; }
+  .section.active { display: block; }
 
-  .sheet-backdrop { position: fixed; inset: 0; background: rgba(10,13,20,0.7); display: flex; align-items: flex-end; justify-content: center; z-index: 50; }
-  .sheet { background: #1e2537; border-radius: 20px 20px 0 0; padding: 20px 16px calc(28px + env(safe-area-inset-bottom)); width: 100%; max-width: 480px; }
-  .sheet-title { font-family: 'Fredoka', sans-serif; font-size: 17px; font-weight: 600; margin-bottom: 14px; text-align: center; }
-  .sheet-btn { display: block; width: 100%; padding: 16px; border-radius: 14px; border: none; background: var(--btn); font-size: 15px; font-weight: 600; margin-bottom: 10px; }
-  .sheet-btn.alt { background: #3a3350; }
-  .sheet-btn.danger { background: #4a2530; }
-  .sheet-cancel { width: 100%; padding: 12px; border-radius: 12px; border: none; background: transparent; color: var(--dim); font-size: 14px; }
-  .flag-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 4px; }
-  .flag-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 6px; border-radius: 14px; border: 1px solid var(--panel-b2); background: #252c40; color: #dfe4f0; font-size: 13px; }
-  .flag-btn .ico { font-size: 26px; }
+  /* WEEK FILTER */
+  .week-filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; align-items: center; }
+  .week-filter-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-right: 4px; }
+  .week-btn { padding: 6px 14px; background: var(--card); border: 1px solid var(--border); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 3px; transition: all .15s; font-family: 'Inter', sans-serif; }
+  .week-btn:hover { border-color: var(--accent); color: var(--text); }
+  .week-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
-  .step-row { display: flex; justify-content: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-  .step-btn { width: 46px; height: 46px; border-radius: 10px; border: 1px solid var(--panel-b2); background: #252c40; font-size: 15px; font-family: 'Fredoka', sans-serif; }
-  .edit-time { text-align: center; font-family: 'Fredoka', sans-serif; font-size: 28px; margin-bottom: 12px; }
+  /* FIXTURE CARDS */
+  .week-block { margin-bottom: 32px; }
+  .week-header { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+  .week-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .week-header.playoff-header { color: var(--accent); }
+  .week-header.playoff-header::after { background: var(--accent); opacity: 0.3; }
 
-  .toast { position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%); background: var(--btn); border: 1px solid #4a5a8f; padding: 10px 18px; border-radius: 30px; font-size: 13px; font-weight: 600; z-index: 60; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; animation: toastIn 0.25s ease; }
-  @keyframes toastIn { from { transform: translate(-50%, 16px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+  .fixture-wrap { margin-bottom: 8px; }
+  .fixture { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 14px 20px; transition: border-color .15s; gap: 12px; cursor: default; }
+  .fixture.pending-fixture { cursor: pointer; }
+  .fixture.pending-fixture:hover { border-color: var(--accent); }
+  .fixture.pending-fixture:hover .enter-result-hint { opacity: 1; }
+  .fixture.winner-home { border-left: 3px solid var(--win); }
+  .fixture.winner-away { border-right: 3px solid var(--win); }
+  .fixture.bye { opacity: 0.45; cursor: default; }
+  .fixture.tbd-fixture { opacity: 0.4; cursor: not-allowed; }
+  .fixture.playoff-fixture { border-color: rgba(245,166,35,0.25); }
+  .fixture.playoff-fixture.pending-fixture:hover { border-color: var(--accent); }
 
-  nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; display: flex; background: #10141f; border-top: 1px solid #232a3d; padding: 8px 0 calc(10px + env(safe-area-inset-bottom)); z-index: 40; }
-  nav button { flex: 1; background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 2px; color: #6d7690; }
-  nav button.active { color: var(--amber); }
-  nav .ico { font-size: 20px; }
-  nav .lbl { font-size: 11px; font-weight: 600; }
+  .player { display: flex; align-items: center; gap: 10px; }
+  .player.away { justify-content: flex-end; flex-direction: row-reverse; margin-left: auto; }
+  .player-name { font-weight: 600; font-size: 15px; color: var(--text); }
+  .player-name.winner { color: var(--win); }
+  .player-name.loser { color: var(--muted); }
+  .player-avg { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 14px; color: #000; flex-shrink: 0; }
 
-  .day-header { font-family: 'Fredoka', sans-serif; font-size: 15px; font-weight: 600; color: var(--amber); margin: 16px 2px 8px; }
-  .log-row { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--panel-b); border-radius: 12px; padding: 10px 12px; margin-bottom: 6px; font-size: 14px; width: 100%; text-align: left; }
-  .log-time { font-family: 'Fredoka', sans-serif; color: var(--dim); font-size: 13px; min-width: 42px; }
-  .log-label { flex: 1; color: #dfe4f0; }
-  .log-label.good { color: var(--green); } .log-label.bad { color: var(--red2); }
-  .empty { text-align: center; color: var(--dim); padding: 48px 24px; font-size: 14px; }
-  .hint { font-size: 13px; color: var(--dim); padding: 12px 6px; line-height: 1.5; }
+  .match-center { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 90px; }
+  .score { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 4px; color: var(--text); }
+  .score.pending { color: var(--muted); font-size: 14px; letter-spacing: 1px; font-family: 'Inter', sans-serif; font-weight: 600; }
+  .match-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); text-align: center; }
+  .checkout-badge { background: var(--accent); color: #000; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 2px; }
+  .enter-result-hint { font-size: 10px; color: var(--accent); font-weight: 600; letter-spacing: 0.5px; opacity: 0; transition: opacity .15s; text-transform: uppercase; }
+  .edit-btn { background: none; border: 1px solid var(--border); color: var(--muted); font-size: 10px; padding: 2px 7px; border-radius: 2px; cursor: pointer; font-family: 'JetBrains Mono', monospace; transition: all .15s; margin-top: 2px; }
+  .edit-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .bo3-badge { background: rgba(79,195,247,0.15); color: var(--accent2); font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 2px; letter-spacing: 1px; }
 
-  .chart { display: flex; align-items: flex-end; justify-content: space-around; background: var(--panel); border: 1px solid var(--panel-b); border-radius: 14px; padding: 14px 8px 10px; margin-bottom: 4px; overflow-x: auto; }
-  .chart-col { display: flex; flex-direction: column; align-items: center; gap: 4px; justify-content: flex-end; min-width: 40px; }
-  .chart-num { font-size: 12px; font-family: 'Fredoka', sans-serif; }
-  .bar { width: 26px; border-radius: 6px; transition: height 0.3s; }
-  .chart-lbl { font-size: 11px; color: var(--dim); }
+  /* RESULT FORM */
+  .result-form { background: #131728; border: 1px solid var(--accent); border-radius: 6px; padding: 18px 20px; margin-top: 2px; display: none; }
+  .result-form.open { display: block; }
+  .rf-title { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 1px; color: var(--accent); margin-bottom: 14px; }
+  .rf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .rf-field { display: flex; flex-direction: column; gap: 4px; }
+  .rf-field.full { grid-column: 1 / -1; }
+  .rf-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .rf-input, .rf-select { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 4px; font-size: 13px; font-family: 'Inter', sans-serif; transition: border-color .15s; width: 100%; }
+  .rf-input:focus, .rf-select:focus { outline: none; border-color: var(--accent); }
+  .rf-select option { background: var(--card); }
+  .rf-actions { display: flex; gap: 8px; align-items: center; }
+  .rf-save { background: var(--accent); color: #000; border: none; padding: 9px 20px; border-radius: 4px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif; transition: opacity .15s; }
 
-  .insight-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; background: var(--panel); border: 1px solid var(--panel-b); border-radius: 14px; padding: 14px 8px; }
-  .stat { text-align: center; }
-  .stat-val { font-size: 15px; font-weight: 700; font-family: 'Fredoka', sans-serif; }
-  .stat-val.good { color: var(--green); } .stat-val.bad { color: var(--red2); }
-  .stat-lbl { font-size: 11px; color: var(--dim); }
+  /* Referee fields */
+  .rf-textarea { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 4px; font-size: 13px; font-family: 'Inter', sans-serif; transition: border-color .15s; width: 100%; resize: vertical; min-height: 56px; }
+  .rf-textarea:focus { outline: none; border-color: var(--accent); }
+  .star-picker { display: flex; gap: 3px; padding: 4px 0; }
+  .star-picker .star { font-size: 22px; line-height: 1; color: var(--border); cursor: pointer; transition: color .1s, transform .1s; user-select: none; }
+  .star-picker .star:hover { transform: scale(1.15); }
+  .star-picker .star.filled { color: var(--accent); }
+  .ref-info { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 8px 14px; margin-top: -1px; border-top: 1px dashed var(--border); font-family: 'Inter', sans-serif; }
+  .ref-name { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.3px; white-space: nowrap; }
+  .ref-stars-display { display: flex; gap: 1px; }
+  .ref-stars-display .star { font-size: 13px; line-height: 1; color: var(--border); }
+  .ref-stars-display .star.filled { color: var(--accent); }
+  .ref-review { font-size: 11px; color: var(--muted); font-style: italic; flex: 1 1 100%; }
+  .rf-save:hover { opacity: 0.85; }
+  .rf-save:disabled { opacity: 0.5; cursor: not-allowed; }
+  .rf-cancel { background: none; border: 1px solid var(--border); color: var(--muted); padding: 9px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all .15s; }
+  .rf-cancel:hover { border-color: var(--muted); color: var(--text); }
+  .rf-clear { background: none; border: 1px solid var(--lose); color: var(--lose); padding: 9px 14px; border-radius: 4px; font-size: 13px; cursor: pointer; font-family: 'Inter', sans-serif; transition: all .15s; margin-left: auto; }
+  .rf-clear:hover { background: var(--lose); color: #fff; }
 
-  .setting { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--panel); border: 1px solid var(--panel-b); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
-  .setting-name { font-weight: 600; }
-  .setting-hint { font-size: 12px; color: var(--dim); }
-  .stepper { display: flex; align-items: center; gap: 6px; }
-  .stepper .val { min-width: 44px; text-align: center; font-family: 'Fredoka', sans-serif; font-weight: 600; }
-  .text-setting input { width: 100%; background: var(--bg); border: 1px solid var(--panel-b2); border-radius: 10px; color: var(--ink); padding: 10px; font-size: 13px; margin-top: 8px; font-family: monospace; }
-  .sync-status { font-size: 12px; margin-top: 6px; }
+  /* LEAGUE TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--surface); border-bottom: 2px solid var(--accent); }
+  th { padding: 10px 14px; text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+  th.num, td.num { text-align: right; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:hover { background: var(--card); }
+  td { padding: 11px 14px; vertical-align: middle; }
+  .rank-cell { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--muted); width: 36px; }
+  .team-cell { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  .pts-cell { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--accent); }
+  .avg-cell { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent2); }
+  .form-dots { display: flex; gap: 3px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.W { background: var(--win); }
+  .dot.L { background: var(--lose); }
+  .dot.P { background: var(--pending); opacity: 0.4; }
 
-  /* night mode: dimmer, bigger targets for 3am one-handed use */
-  body.night { --bg: #0a0d14; --panel: #10141f; --ink: #c9c2b4; --amber: #d9a854; }
-  body.night .big-btn { padding: 24px 8px; font-size: 15px; }
-  body.night .sleep-btn { padding: 24px 0; }
-  body.night .hero, body.night .grid-label { opacity: 0.75; }
+  /* ZONE COLOURS */
+  tbody tr.zone-gold { background: rgba(255,215,0,0.07); border-left: 3px solid #ffd700; }
+  tbody tr.zone-gold:hover { background: rgba(255,215,0,0.13); }
+  tbody tr.zone-green { background: rgba(34,197,94,0.05); border-left: 3px solid #22c55e; }
+  tbody tr.zone-green:hover { background: rgba(34,197,94,0.1); }
+  tbody tr.zone-pink { background: rgba(236,72,153,0.06); border-left: 3px solid #ec4899; }
+  tbody tr.zone-pink:hover { background: rgba(236,72,153,0.11); }
+  tbody tr.zone-brown { background: rgba(161,110,60,0.08); border-left: 3px solid #a16e3c; }
+  tbody tr.zone-brown:hover { background: rgba(161,110,60,0.14); }
+  .zone-indicator { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
+  .zi-gold { background: #ffd700; } .zi-green { background: #22c55e; } .zi-pink { background: #ec4899; } .zi-brown { background: #a16e3c; }
+  .table-legend { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; padding: 10px 14px; background: var(--surface); border-radius: 6px; border: 1px solid var(--border); }
+  .legend-item { display: flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.5px; }
 
+  /* PLAYERS */
+  .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .player-card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 20px; cursor: pointer; transition: border-color .15s; }
+  .player-card:hover { border-color: var(--accent); }
+  .player-card.selected { border-color: var(--accent); background: #1a2040; }
+  .pc-avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #000; margin-bottom: 12px; }
+  .pc-name { font-weight: 600; font-size: 16px; margin-bottom: 4px; }
+  .pc-stat { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .pc-pts { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--accent); margin-top: 8px; }
+  #player-detail { margin-top: 24px; background: var(--card); border: 1px solid var(--accent); border-radius: 6px; padding: 24px; display: none; }
+  #player-detail.visible { display: block; }
+  .pd-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .pd-fixture { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .pd-week { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); width: 50px; }
+  .result-badge { font-family: 'Bebas Neue', sans-serif; font-size: 14px; padding: 2px 8px; border-radius: 2px; }
+  .result-badge.W { background: var(--win); color: #000; }
+  .result-badge.L { background: var(--lose); color: #fff; }
+  .result-badge.TBD { background: var(--border); color: var(--muted); }
+
+  /* PLAYOFF BRACKET */
+  .po-card { background: var(--card); border: 1px solid var(--border); border-radius: 5px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; height: 34px; }
+  .po-card.tbd { color: var(--muted); border-style: dashed; background: transparent; }
+  .po-card.bye-card { border-color: var(--accent); background: rgba(245,166,35,0.08); }
+  .po-card .po-seed { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); min-width: 28px; }
+  .po-card .po-av { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 10px; color: #000; flex-shrink: 0; }
+  .po-vs { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); text-align: center; padding: 3px 0; }
+  .stage-title { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 2px; color: var(--accent); text-align: center; padding-bottom: 12px; }
+  .elshitico-wrap { margin-top: 32px; padding: 20px; background: rgba(161,110,60,0.08); border: 1px solid #a16e3c; border-radius: 6px; }
+  .elshitico-title { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; color: #a16e3c; margin-bottom: 6px; }
+  .champion-box { text-align: center; padding: 12px 8px; }
+
+  /* SEASON STATS */
+  .stats-section-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 12px; }
+  .stats-section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .stats-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 14px; margin-bottom: 32px; }
+  .stats-card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 18px 16px; }
+  .stats-card-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; }
+  .stats-card-value { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--accent); line-height: 1; }
+  .stats-card-player { font-size: 13px; font-weight: 600; color: var(--text); margin-top: 6px; }
+  .stats-table-wrap { overflow-x: auto; margin-bottom: 32px; }
+  .stats-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .stats-table thead tr { background: var(--surface); border-bottom: 2px solid var(--accent); }
+  .stats-table th { padding: 10px 14px; text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
+  .stats-table th.num, .stats-table td.num { text-align: right; }
+  .stats-table tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  .stats-table tbody tr:hover { background: var(--card); }
+  .stats-table td { padding: 11px 14px; vertical-align: middle; }
+  .stats-bar-wrap { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .stats-bar { height: 8px; border-radius: 4px; min-width: 2px; }
+  .stats-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; min-width: 40px; text-align: right; }
+  .stats-best { color: var(--accent); font-weight: 700; }
+
+  /* LOADING & TOAST */
+  #loading { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 100; }
+  #loading.hidden { display: none; }
+  .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); letter-spacing: 2px; }
+  .toast { position: fixed; bottom: 24px; right: 24px; font-weight: 700; font-size: 13px; padding: 10px 18px; border-radius: 4px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; font-family: 'Inter', sans-serif; }
+  .toast.show { opacity: 1; }
+  .toast.success { background: var(--win); color: #000; }
+  .toast.error { background: var(--lose); color: #fff; }
+
+  /* FOOTER */
+  footer { margin-top: 48px; border-top: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .shop-link { display: inline-flex; align-items: center; gap: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 12px 20px; text-decoration: none; color: var(--text); font-size: 13px; font-weight: 600; transition: border-color .15s, background .15s; }
+  .shop-link:hover { border-color: var(--accent); background: #1e2334; }
+  .shop-link-icon { font-size: 18px; }
+  .shop-link-label { color: var(--muted); font-size: 11px; font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* HALL OF FAME */
+  .hof-season { margin-bottom: 40px; }
+  .hof-season-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .hof-season-divider {
+    height: 2px;
+    background: linear-gradient(to right, var(--accent), transparent);
+    margin-bottom: 20px;
+  }
+  .hof-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+  .hof-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    transition: border-color .15s;
+  }
+  .hof-card:hover { border-color: var(--accent); }
+  .hof-card.champion { border-color: #ffd700; background: rgba(255,215,0,0.06); }
+  .hof-card.tbd { opacity: 0.45; }
+  .hof-trophy { font-size: 28px; }
+  .hof-award { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .hof-player { font-weight: 700; font-size: 16px; color: var(--text); }
+  .hof-player.tbd-player { color: var(--muted); font-style: italic; }
+  .hof-avatar { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #000; }
+
+  .hof-wins-bar { margin-top: 32px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 20px; }
+  .hof-wins-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; color: var(--text); margin-bottom: 16px; }
+  .hof-win-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .hof-win-name { font-weight: 600; font-size: 13px; width: 70px; }
+  .hof-win-bar { height: 10px; border-radius: 5px; background: var(--accent); transition: width .4s; }
+  .hof-win-count { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+
+  @media (max-width: 600px) {
+    header, main { padding: 16px; }
+    .tabs { padding: 0 16px; }
+    .player-name { font-size: 13px; }
+    .score { font-size: 20px; }
+    .fixture { padding: 10px 12px; }
+    .rf-grid { grid-template-columns: 1fr; }
+    .rf-field.full { grid-column: 1; }
+    .hof-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  }
 </style>
 </head>
 <body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text">LOADING RESULTS...</div>
+</div>
+
 <header>
-  <div class="title">🐾 Ralph's Day</div>
-  <div style="display:flex;align-items:center;gap:10px"><span id="night-btn" onclick="settings.night=!settings.night;saveSettings();applyNight();render()" style="cursor:pointer;font-size:16px">🌙</span><span id="sync-dot" onclick="tab='settings';render()" style="width:10px;height:10px;border-radius:50%;background:#555;display:inline-block;cursor:pointer"></span><span id="clock"></span></div>
+  <div>
+    <div class="header-title">🎯 Singles League</div>
+    <div class="header-sub">Season 3 &nbsp;·&nbsp; 11 Players &nbsp;·&nbsp; 11 Weeks</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="live-badge">SEASON IN PROGRESS</div>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
+  </div>
 </header>
-<main id="main"></main>
-<nav id="nav"></nav>
-<div id="overlay"></div>
-<div id="toast-slot"></div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showSection('fixtures',this)">Fixtures</button>
+  <button class="tab" onclick="showSection('table',this)">League Table</button>
+  <button class="tab" onclick="showSection('players',this)">Players</button>
+  <button class="tab" onclick="showSection('playoffs',this)">Playoffs</button>
+  <button class="tab" onclick="showSection('halloffame',this)">Hall of Fame</button>
+  <button class="tab" onclick="showSection('seasonstats',this)">Season Stats</button>
+</div>
+
+<main>
+  <div id="fixtures" class="section active">
+    <div class="week-filter">
+      <span class="week-filter-label">Week</span>
+      <button class="week-btn active" onclick="filterWeek('all',this)">All</button>
+      <button class="week-btn" onclick="filterWeek(1,this)">1</button>
+      <button class="week-btn" onclick="filterWeek(2,this)">2</button>
+      <button class="week-btn" onclick="filterWeek(3,this)">3</button>
+      <button class="week-btn" onclick="filterWeek(4,this)">4</button>
+      <button class="week-btn" onclick="filterWeek(5,this)">5</button>
+      <button class="week-btn" onclick="filterWeek(6,this)">6</button>
+      <button class="week-btn" onclick="filterWeek(7,this)">7</button>
+      <button class="week-btn" onclick="filterWeek(8,this)">8</button>
+      <button class="week-btn" onclick="filterWeek(9,this)">9</button>
+      <button class="week-btn" onclick="filterWeek(10,this)">10</button>
+      <button class="week-btn" onclick="filterWeek(11,this)">11</button>
+      <button class="week-btn" onclick="filterWeek('playoffs',this)">Playoffs</button>
+    </div>
+    <div id="fixtures-list"></div>
+  </div>
+
+  <div id="table" class="section">
+    <div class="table-legend">
+      <div class="legend-item"><span class="zone-indicator zi-gold"></span>1st Place</div>
+      <div class="legend-item"><span class="zone-indicator zi-green"></span>2nd – 7th</div>
+      <div class="legend-item"><span class="zone-indicator zi-pink"></span>8th – 9th</div>
+      <div class="legend-item"><span class="zone-indicator zi-brown"></span>10th – 11th</div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Player</th><th class="num">P</th><th class="num">W</th>
+          <th class="num">L</th><th class="num">Pts</th><th class="num">Avg</th>
+          <th class="num">Ck</th><th class="num">Ck Total</th><th>Form</th>
+        </tr></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="players" class="section">
+    <div class="player-grid" id="player-grid"></div>
+    <div id="player-detail"></div>
+  </div>
+
+  <div id="playoffs" class="section">
+    <div id="playoff-bracket"></div>
+  </div>
+
+  <div id="halloffame" class="section">
+    <div id="hof-content"></div>
+  </div>
+
+  <div id="seasonstats" class="section">
+    <div id="stats-content"></div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+<datalist id="referee-names"></datalist>
 
 <script>
-"use strict";
-// ===================== helpers =====================
-const pad = n => String(n).padStart(2, "0");
-const fmtTime = ts => { const d = new Date(ts); return pad(d.getHours()) + ":" + pad(d.getMinutes()); };
-const fmtDur = ms => { if (ms < 0) ms = 0; const m = Math.floor(ms / 60000), h = Math.floor(m / 60); return h > 0 ? h + "h " + (m % 60) + "m" : m + "m"; };
-const dayKey = ts => { const d = new Date(ts); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// ─── SUPABASE ─────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://gtoozehjbvvowignlrzi.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b296ZWhqYnZ2b3dpZ25scnppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2OTM4NDksImV4cCI6MjA5NzI2OTg0OX0.B-ZmxDFH73TUvFNIWvY4HwnjMuqZZ9lG1eOSrJrAyR8';
 
-const FLAGS = [
-  { key: "zoomies", label: "Zoomies / bitey", icon: "🌀" },
-  { key: "visitors", label: "Visitors", icon: "🚪" },
-  { key: "sling", label: "Sling trip", icon: "👜" },
-  { key: "training", label: "Training", icon: "🎓" },
-  { key: "play", label: "Play", icon: "🧸" },
-  { key: "crying", label: "Crying", icon: "😿" },
+async function dbFetch(path, options={}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: { 'apikey':SUPABASE_KEY, 'Authorization':`Bearer ${SUPABASE_KEY}`, 'Content-Type':'application/json', 'Prefer': options.prefer||'', ...(options.headers||{}) }
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const t = await res.text();
+  return t ? JSON.parse(t) : null;
+}
+async function loadAllResults() {
+  const rows = await dbFetch('results?select=*');
+  const map = {};
+  (rows||[]).forEach(r => { map[r.fixture_id] = r; });
+  return map;
+}
+async function upsertResult(id, data) {
+  await dbFetch('results', {
+    method:'POST', headers:{'Prefer':'resolution=merge-duplicates'},
+    body: JSON.stringify({ fixture_id:id, winner:data.winner, home_score:data.homeScore, away_score:data.awayScore, checkout:data.checkout||null, home_avg:data.homeAvg||null, away_avg:data.awayAvg||null, date_played:data.date||null, referee:data.referee||null, ref_rating:data.refRating||null, ref_review:data.refReview||null, updated_at:new Date().toISOString() })
+  });
+}
+async function deleteResult(id) {
+  await dbFetch(`results?fixture_id=eq.${id}`, {method:'DELETE'});
+}
+
+// ─── STATIC DATA ─────────────────────────────────────────────────────────────
+const PLAYERS = ['Max','Shaun','Adam','James','Ste','Dan','Ollie','Mohan','Cedric','Ant','Liam'];
+const COLORS = { Max:'#f5a623',Shaun:'#4fc3f7',Adam:'#a78bfa',James:'#34d399',Ste:'#f87171',Dan:'#fbbf24',Ollie:'#60a5fa',Mohan:'#fb923c',Cedric:'#c084fc',Ant:'#2dd4bf',Liam:'#e879f9' };
+
+const BASE_FIXTURES = [
+  {id:'1-1',week:1,home:'Mohan',away:'Cedric'},{id:'1-2',week:1,home:'Ant',away:'Dan'},
+  {id:'1-3',week:1,home:'James',away:'BYE'},{id:'1-4',week:1,home:'Ollie',away:'Ste'},
+  {id:'1-5',week:1,home:'Liam',away:'Adam'},{id:'1-6',week:1,home:'Shaun',away:'Max'},
+  {id:'2-1',week:2,home:'Dan',away:'Mohan'},{id:'2-2',week:2,home:'BYE',away:'Cedric'},
+  {id:'2-3',week:2,home:'Ste',away:'Ant'},{id:'2-4',week:2,home:'Adam',away:'James'},
+  {id:'2-5',week:2,home:'Max',away:'Ollie'},{id:'2-6',week:2,home:'Shaun',away:'Liam'},
+  {id:'3-1',week:3,home:'Mohan',away:'BYE'},{id:'3-2',week:3,home:'Dan',away:'Ste'},
+  {id:'3-3',week:3,home:'Cedric',away:'Adam'},{id:'3-4',week:3,home:'Ant',away:'Max'},
+  {id:'3-5',week:3,home:'James',away:'Shaun'},{id:'3-6',week:3,home:'Ollie',away:'Liam'},
+  {id:'4-1',week:4,home:'Ste',away:'Mohan'},{id:'4-2',week:4,home:'Adam',away:'BYE'},
+  {id:'4-3',week:4,home:'Max',away:'Dan'},{id:'4-4',week:4,home:'Shaun',away:'Cedric'},
+  {id:'4-5',week:4,home:'Liam',away:'Ant'},{id:'4-6',week:4,home:'Ollie',away:'James'},
+  {id:'5-1',week:5,home:'Mohan',away:'Adam'},{id:'5-2',week:5,home:'Ste',away:'Max'},
+  {id:'5-3',week:5,home:'BYE',away:'Shaun'},{id:'5-4',week:5,home:'Dan',away:'Liam'},
+  {id:'5-5',week:5,home:'Cedric',away:'Ollie'},{id:'5-6',week:5,home:'Ant',away:'James'},
+  {id:'6-1',week:6,home:'Max',away:'Mohan'},{id:'6-2',week:6,home:'Shaun',away:'Adam'},
+  {id:'6-3',week:6,home:'Liam',away:'Ste'},{id:'6-4',week:6,home:'Ollie',away:'BYE'},
+  {id:'6-5',week:6,home:'James',away:'Dan'},{id:'6-6',week:6,home:'Ant',away:'Cedric'},
+  {id:'7-1',week:7,home:'Mohan',away:'Shaun'},{id:'7-2',week:7,home:'Max',away:'Liam'},
+  {id:'7-3',week:7,home:'Adam',away:'Ollie'},{id:'7-4',week:7,home:'Ste',away:'James'},
+  {id:'7-5',week:7,home:'BYE',away:'Ant'},{id:'7-6',week:7,home:'Dan',away:'Cedric'},
+  {id:'8-1',week:8,home:'Liam',away:'Mohan'},{id:'8-2',week:8,home:'Ollie',away:'Shaun'},
+  {id:'8-3',week:8,home:'James',away:'Max'},{id:'8-4',week:8,home:'Ant',away:'Adam'},
+  {id:'8-5',week:8,home:'Cedric',away:'Ste'},{id:'8-6',week:8,home:'Dan',away:'BYE'},
+  {id:'9-1',week:9,home:'Mohan',away:'Ollie'},{id:'9-2',week:9,home:'Liam',away:'James'},
+  {id:'9-3',week:9,home:'Shaun',away:'Ant'},{id:'9-4',week:9,home:'Max',away:'Cedric'},
+  {id:'9-5',week:9,home:'Adam',away:'Dan'},{id:'9-6',week:9,home:'Ste',away:'BYE'},
+  {id:'10-1',week:10,home:'James',away:'Mohan'},{id:'10-2',week:10,home:'Ant',away:'Ollie'},
+  {id:'10-3',week:10,home:'Cedric',away:'Liam'},{id:'10-4',week:10,home:'Dan',away:'Shaun'},
+  {id:'10-5',week:10,home:'BYE',away:'Max'},{id:'10-6',week:10,home:'Ste',away:'Adam'},
+  {id:'11-1',week:11,home:'Mohan',away:'Ant'},{id:'11-2',week:11,home:'James',away:'Cedric'},
+  {id:'11-3',week:11,home:'Ollie',away:'Dan'},{id:'11-4',week:11,home:'Liam',away:'BYE'},
+  {id:'11-5',week:11,home:'Shaun',away:'Ste'},{id:'11-6',week:11,home:'Max',away:'Adam'},
 ];
 
-const DEFAULT_SETTINGS = { awakeWindowMin: 50, weeWarnMin: 60, foodTargetG: 150, mealSizeG: 50, supabaseUrl: "", supabaseKey: "", dob: "", night: false };
-
-// Web Push (public key — safe to embed; the private half lives in Supabase secrets)
-const VAPID_PUBLIC = "BBZzXpYh6a2S9l14vvl_YubQWJSu5O0Z4TTruHJ8Gw8MlcVn8ehjnBhwjJEH7LZKvjX2Km09B3WVTWW7HpknPO0";
-let deviceId = localStorage.getItem("ralph-device");
-if (!deviceId) { deviceId = "dev-" + Math.random().toString(36).slice(2, 10); localStorage.setItem("ralph-device", deviceId); }
-
-function eventMeta(e) {
-  switch (e.type) {
-    case "wee": return { icon: "💧", label: e.where === "outside" ? "Wee outside" : "Wee inside", good: e.where === "outside" };
-    case "poo": return { icon: "💩", label: e.where === "outside" ? "Poo outside" : "Poo inside", good: e.where === "outside" };
-    case "napStart": return { icon: "😴", label: "Nap started", good: null };
-    case "napEnd": return { icon: "☀️", label: "Woke up", good: null };
-    case "meal": return { icon: "🍚", label: "Meal " + e.grams + "g" + (e.finished === false ? " (left some)" : ""), good: null };
-    case "flag": { const f = FLAGS.find(f => f.key === e.flag); return { icon: f ? f.icon : "🏷", label: f ? f.label : e.flag, good: null }; }
-    case "note": return { icon: "📝", label: e.text || "", good: null };
-    default: return { icon: "•", label: e.type, good: null };
-  }
-}
-
-// ===================== seed: first four days (5–8 July 2026) =====================
-// Day 5 toilet times are estimates — the written log only gave daily totals.
-const SEED_RAW = [
-  [5,"14:00","note","Picked up Ralph 🎉"],
-  [5,"14:30","weeOut"],[5,"15:30","weeOut"],[5,"16:00","mealF"],
-  [5,"16:40","napStart"],[5,"17:15","napEnd"],
-  [5,"17:20","weeOut"],[5,"18:00","pooOut"],[5,"18:15","weeOut"],[5,"19:00","weeOut"],
-  [5,"19:20","napStart"],[5,"19:50","napEnd"],
-  [5,"20:30","weeOut"],[5,"20:45","weeIn"],
-  [5,"21:03","napStart"],[5,"22:03","napEnd"],
-  [5,"22:05","weeOut"],[5,"22:45","napStart"],
-  [6,"00:40","napEnd"],[6,"00:41","weeOut"],[6,"00:42","pooOut"],[6,"00:46","pooIn"],
-  [6,"01:15","napStart"],[6,"04:10","napEnd"],[6,"04:35","weeOut"],
-  [6,"04:45","napStart"],[6,"07:00","napEnd"],[6,"07:01","weeOut"],
-  [6,"07:55","weeIn"],[6,"08:00","mealF"],[6,"08:04","pooOut"],
-  [6,"08:44","napStart"],[6,"09:12","napEnd"],[6,"09:14","weeOut"],
-  [6,"09:50","napStart"],[6,"10:24","napEnd"],[6,"10:28","weeOut"],
-  [6,"11:45","napStart"],[6,"12:25","napEnd"],[6,"12:26","weeOut"],
-  [6,"12:37","flag","sling"],[6,"13:10","weeOut"],[6,"13:12","mealF"],
-  [6,"13:34","napStart"],[6,"14:29","napEnd"],
-  [6,"14:32","weeOut"],[6,"14:36","pooOut"],[6,"14:40","weeOut"],
-  [6,"15:05","napStart"],[6,"15:22","napEnd"],[6,"15:23","flag","visitors"],[6,"15:40","weeOut"],
-  [6,"16:03","napStart"],[6,"16:25","napEnd"],[6,"16:27","weeOut"],
-  [6,"17:00","mealU"],[6,"17:05","weeIn"],[6,"17:06","pooOut"],
-  [6,"17:22","napStart"],[6,"18:15","napEnd"],[6,"18:16","weeOut"],
-  [6,"18:33","napStart"],[6,"19:27","napEnd"],[6,"19:28","flag","visitors"],
-  [6,"19:45","weeOut"],[6,"20:15","weeOut"],
-  [6,"20:25","weeIn"],[6,"20:26","pooIn"],[6,"20:30","flag","zoomies"],[6,"20:47","weeOut"],
-  [6,"21:02","napStart"],
-  [7,"02:58","napEnd"],[7,"03:00","weeOut"],[7,"03:02","pooOut"],[7,"03:04","pooOut"],
-  [7,"03:15","napStart"],[7,"05:00","napEnd"],[7,"05:01","weeOut"],
-  [7,"06:05","flag","zoomies"],[7,"06:07","weeOut"],
-  [7,"06:18","napStart"],[7,"07:06","napEnd"],
-  [7,"07:36","weeIn"],[7,"07:41","weeOut"],[7,"07:56","mealU"],[7,"07:58","pooOut"],
-  [7,"08:09","weeIn"],[7,"08:12","flag","training"],
-  [7,"08:22","napStart"],[7,"09:11","napEnd"],[7,"09:12","weeOut"],[7,"09:15","flag","training"],
-  [7,"09:50","weeOut"],
-  [7,"10:09","napStart"],[7,"10:49","napEnd"],[7,"10:50","weeOut"],
-  [7,"11:11","flag","sling"],[7,"12:09","weeOut"],
-  [7,"12:25","napStart"],[7,"13:25","napEnd"],[7,"13:26","weeOut"],
-  [7,"13:30","mealU"],[7,"13:40","pooOut"],[7,"13:45","flag","training"],
-  [7,"14:40","napStart"],[7,"15:55","napEnd"],[7,"15:56","weeOut"],
-  [7,"16:00","flag","visitors"],[7,"16:33","weeOut"],[7,"16:34","pooOut"],
-  [7,"17:02","napStart"],[7,"17:30","napEnd"],[7,"17:31","weeIn"],[7,"17:33","weeOut"],
-  [7,"17:39","mealF"],[7,"17:47","weeOut"],[7,"17:52","pooOut"],[7,"17:55","weeOut"],
-  [7,"18:17","napStart"],[7,"18:50","napEnd"],[7,"18:51","weeOut"],
-  [7,"19:35","weeIn"],[7,"19:36","weeOut"],
-  [7,"19:57","napStart"],[7,"20:34","napEnd"],[7,"20:40","weeOut"],
-  [7,"21:14","flag","zoomies"],[7,"21:18","weeOut"],
-  [7,"21:30","napStart"],[7,"21:45","napEnd"],[7,"22:00","napStart"],
-  [8,"02:53","napEnd"],[8,"02:54","weeOut"],[8,"02:56","pooOut"],[8,"03:05","weeOut"],
-  [8,"03:29","napStart"],[8,"06:53","napEnd"],[8,"06:54","weeOut"],
-  [8,"07:10","pooOut"],[8,"07:12","flag","training"],[8,"07:40","weeOut"],
-  [8,"08:00","flag","training"],[8,"08:03","napStart"],[8,"08:55","napEnd"],
-  [8,"08:57","weeOut"],[8,"09:00","flag","training"],[8,"09:05","mealF"],[8,"09:10","flag","play"],
-  [8,"10:05","napStart"],[8,"10:55","napEnd"],[8,"10:57","weeOut"],
-  [8,"11:25","pooOut"],[8,"11:38","flag","sling"],[8,"12:37","weeOut"],
-  [8,"12:45","napStart"],[8,"13:52","napEnd"],[8,"13:53","weeOut"],
-  [8,"14:00","mealF"],[8,"14:10","weeOut"],[8,"14:15","flag","play"],
-  [8,"15:00","napStart"],[8,"15:35","napEnd"],[8,"15:36","weeOut"],[8,"15:40","pooOut"],
-  [8,"16:22","napStart"],[8,"17:08","napEnd"],[8,"17:09","weeOut"],
-  [8,"17:30","weeIn"],[8,"17:32","mealU"],[8,"17:47","weeOut"],
-  [8,"18:04","flag","zoomies"],[8,"18:05","napStart"],[8,"19:12","napEnd"],
-  [8,"19:13","weeOut"],[8,"20:05","napStart"],
-  // Wed evening + Thu morning, imported from the written log (9 July update).
-  // IMPORTANT: only ever APPEND to this array — ids are index-based, so inserting
-  // mid-array would shift ids and duplicate events on devices that already seeded.
-  [8,"21:08","napEnd"],[8,"21:09","weeOut"],[8,"21:10","pooOut"],
-  [8,"21:33","flag","zoomies"],[8,"21:34","weeOut"],
-  [8,"21:35","napStart"],
-  [9,"05:40","napEnd"],[9,"05:41","pooOut"],[9,"05:42","weeOut"],
-  [9,"05:58","pooOut"],[9,"05:59","weeOut"],
-  [9,"06:00","flag","training"],[9,"06:05","pooOut"],
-  [9,"06:39","flag","zoomies"],[9,"06:40","napStart"],
-  [9,"07:53","napEnd"],[9,"07:54","weeOut"],[9,"07:55","flag","training"],
+// Playoff fixture definitions — home/away resolved dynamically from standings
+const PLAYOFF_FIXTURE_DEFS = [
+  { id:'qf-1', round:'QF', label:'Quarter Final 1', matchup:'2v7', isPlayoff:true },
+  { id:'qf-2', round:'QF', label:'Quarter Final 2', matchup:'3v6', isPlayoff:true },
+  { id:'qf-3', round:'QF', label:'Quarter Final 3', matchup:'4v5', isPlayoff:true },
+  { id:'sf-1', round:'SF', label:'Semi Final 1',    matchup:'1vW-QF1', isPlayoff:true },
+  { id:'sf-2', round:'SF', label:'Semi Final 2',    matchup:'W-QF2vW-QF3', isPlayoff:true },
+  { id:'3rd',  round:'3RD',label:'3rd Place Play-off', matchup:'L-SF1vL-SF2', isPlayoff:true },
+  { id:'final',round:'F',  label:'Final',           matchup:'W-SF1vW-SF2', isPlayoff:true },
+  { id:'elshitico', round:'ES', label:'El Shitico', matchup:'10v11', isPlayoff:true },
 ];
 
-function buildSeed(mealG) {
-  return SEED_RAW.map((row, i) => {
-    const [day, time, kind, detail] = row;
-    const [h, m] = time.split(":").map(Number);
-    const ts = new Date(2026, 6, day, h, m).getTime();
-    const base = { id: "seed" + i, ts, mod: ts };
-    switch (kind) {
-      case "weeOut": return { ...base, type: "wee", where: "outside" };
-      case "weeIn": return { ...base, type: "wee", where: "inside" };
-      case "pooOut": return { ...base, type: "poo", where: "outside" };
-      case "pooIn": return { ...base, type: "poo", where: "inside" };
-      case "mealF": return { ...base, type: "meal", grams: mealG, finished: true };
-      case "mealU": return { ...base, type: "meal", grams: mealG, finished: false };
-      case "napStart": return { ...base, type: "napStart" };
-      case "napEnd": return { ...base, type: "napEnd" };
-      case "flag": return { ...base, type: "flag", flag: detail };
-      case "note": return { ...base, type: "note", text: detail };
-    }
+const SEED_RESULTS = {
+  '1-1':{winner:'Cedric',homeScore:0,awayScore:1,checkout:2,homeAvg:9.03,awayAvg:9.06,date:'Wed 10 Jun'},
+  '1-2':{winner:'Ant',homeScore:1,awayScore:0,checkout:2,homeAvg:7.28,awayAvg:7.29,date:'Thu 11 Jun'},
+  '1-4':{winner:'Ste',homeScore:0,awayScore:1,checkout:18,homeAvg:28.2,awayAvg:31.14,date:'Wed 10 Jun'},
+  '1-6':{winner:'Max',homeScore:0,awayScore:1,checkout:32,homeAvg:42.29,awayAvg:41.05,date:'Tue 16 Jun'},
+  '3-6':{winner:'Liam',homeScore:0,awayScore:1,checkout:4,homeAvg:28.1,awayAvg:29.13,date:'Thu 11 Jun'},
+  '4-6':{winner:'Ollie',homeScore:1,awayScore:0,checkout:16,homeAvg:30.1,awayAvg:33.22,date:'Tue 16 Jun'},
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let dbResults = {};
+let currentWeekFilter = 'all';
+let openFormId = null;
+
+function getFixtures() {
+  return BASE_FIXTURES.map(f => {
+    const r = dbResults[f.id];
+    return r ? {...f, winner:r.winner, homeScore:r.home_score, awayScore:r.away_score, checkout:r.checkout, homeAvg:r.home_avg, awayAvg:r.away_avg, date:r.date_played||'', referee:r.referee||'', refRating:r.ref_rating||0, refReview:r.ref_review||''}
+             : {...f, winner:null, homeScore:null, awayScore:null, checkout:null, homeAvg:null, awayAvg:null, date:'', referee:'', refRating:0, refReview:''};
   });
 }
 
-// ===================== state & storage =====================
-let events = [];   // each: {id, ts, mod, type, ..., deleted?}
-let settings = { ...DEFAULT_SETTINGS };
-let tab = "now";
-let syncState = { status: "off", detail: "" };
+// Resolve playoff fixtures — fills home/away from current standings + previous playoff results
+function getPlayoffFixtures() {
+  const s = computeStandings();
 
-function load() {
-  try { const raw = localStorage.getItem("ralph-events"); if (raw) events = JSON.parse(raw); } catch (e) {}
-  try { const raw = localStorage.getItem("ralph-settings"); if (raw) settings = { ...settings, ...JSON.parse(raw) }; } catch (e) {}
-  const seeded = localStorage.getItem("ralph-seeded") === "yes";
-  if (events.length === 0 && !seeded) {
-    events = buildSeed(settings.mealSizeG);
-    localStorage.setItem("ralph-seeded", "yes");
-    saveEvents();
+  // Helper: get name at position (1-indexed), or null
+  function seed(n) { return s[n-1] ? s[n-1].name : null; }
+
+  // Get winner of a playoff fixture id
+  function poWinner(id) { const r = dbResults[id]; return r ? r.winner : null; }
+  function poLoser(id) {
+    const r = dbResults[id];
+    if (!r) return null;
+    const pf = getPlayoffFixtures().find(f=>f.id===id);
+    if (!pf) return null;
+    return r.winner === pf.home ? pf.away : pf.home;
   }
-}
-function saveEvents() {
-  events.sort((a, b) => a.ts - b.ts);
-  try { localStorage.setItem("ralph-events", JSON.stringify(events)); } catch (e) {}
-}
-function saveSettings() {
-  try { localStorage.setItem("ralph-settings", JSON.stringify(settings)); } catch (e) {}
-}
 
-const live = () => events.filter(e => !e.deleted);
+  const fixtures = [
+    { id:'qf-1', round:'QF', label:'Quarter Final 1', home: seed(2), away: seed(7) },
+    { id:'qf-2', round:'QF', label:'Quarter Final 2', home: seed(3), away: seed(6) },
+    { id:'qf-3', round:'QF', label:'Quarter Final 3', home: seed(4), away: seed(5) },
+    { id:'sf-1', round:'SF', label:'Semi Final 1',    home: seed(1), away: poWinner('qf-1') },
+    { id:'sf-2', round:'SF', label:'Semi Final 2',    home: poWinner('qf-2'), away: poWinner('qf-3') },
+    { id:'3rd',  round:'3RD',label:'3rd Place Play-off', home: null, away: null }, // filled below
+    { id:'final',round:'F',  label:'Final',           home: poWinner('sf-1'), away: poWinner('sf-2') },
+    { id:'elshitico', round:'ES', label:'⚔️ El Shitico', home: seed(10), away: seed(11) },
+  ];
 
-function addEvent(ev) {
-  const e = { id: uid(), ts: Date.now(), mod: Date.now(), dev: deviceId, ...ev };
-  const dupe = live().some(x => x.id !== e.id && x.type === e.type && (x.where || "") === (e.where || "") && (x.flag || "") === (e.flag || "") && Math.abs(x.ts - e.ts) < 2 * 60000);
-  events.push(e);
-  saveEvents();
-  render();
-  const meta = eventMeta(e);
-  toast((dupe ? "⚠️ Possible duplicate: " : "") + meta.icon + " " + meta.label + " · " + fmtTime(e.ts), e.id);
-  scheduleSync();
-}
-function shiftEvent(id, deltaMin) {
-  const e = events.find(x => x.id === id);
-  if (e) { e.ts += deltaMin * 60000; e.mod = Date.now(); saveEvents(); scheduleSync(); }
-}
-function deleteEvent(id) {
-  const e = events.find(x => x.id === id);
-  if (e) { e.deleted = true; e.mod = Date.now(); saveEvents(); scheduleSync(); }
-}
+  // 3rd place: losers of semis — need to compute after sf entries exist
+  const sf1Loser = (() => {
+    const r = dbResults['sf-1'];
+    if (!r) return null;
+    const sf1 = fixtures.find(f=>f.id==='sf-1');
+    return r.winner === sf1.home ? sf1.away : sf1.home;
+  })();
+  const sf2Loser = (() => {
+    const r = dbResults['sf-2'];
+    if (!r) return null;
+    const sf2 = fixtures.find(f=>f.id==='sf-2');
+    return r.winner === sf2.home ? sf2.away : sf2.home;
+  })();
+  fixtures.find(f=>f.id==='3rd').home = sf1Loser;
+  fixtures.find(f=>f.id==='3rd').away = sf2Loser;
 
-// ===================== optional Supabase sync =====================
-let syncTimer = null;
-function scheduleSync() { if (!settings.supabaseUrl) return; clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, 1500); }
-
-async function syncNow(quiet) {
-  if (!settings.supabaseUrl || !settings.supabaseKey) { syncState = { status: "off", detail: "" }; renderIfSettings(); return; }
-  const base = settings.supabaseUrl.replace(/\/+$/, "");
-  const headers = {
-    apikey: settings.supabaseKey,
-    Authorization: "Bearer " + settings.supabaseKey,
-    "Content-Type": "application/json",
-    Prefer: "resolution=merge-duplicates",
-  };
-  if (!quiet) { syncState = { status: "working", detail: "Syncing…" }; renderIfSettings(); }
-  try {
-    // pull — paginate in 1000-row pages (PostgREST caps each response at 1000)
-    let remote = [];
-    for (let page = 0; page < 50; page++) {
-      const from = page * 1000, to = from + 999;
-      const res = await fetch(base + "/rest/v1/ralph_events?select=id,mod,payload", {
-        headers: { ...headers, "Range-Unit": "items", Range: from + "-" + to },
-      });
-      if (!res.ok) throw new Error("pull " + res.status);
-      const chunk = await res.json();
-      remote = remote.concat(chunk);
-      if (chunk.length < 1000) break; // last page reached
-    }
-    const remoteMap = new Map(remote.map(r => [r.id, r]));
-    const localMap = new Map(events.map(e => [e.id, e]));
-    let changedLocal = false;
-    const toPush = [];
-    // merge remote → local (newer mod wins)
-    for (const r of remote) {
-      const l = localMap.get(r.id);
-      if (!l) { events.push(r.payload); changedLocal = true; }
-      else if ((r.mod || 0) > (l.mod || 0)) { Object.assign(l, r.payload); changedLocal = true; }
-    }
-    // local → push (missing remotely or newer locally)
-    for (const e of events) {
-      const r = remoteMap.get(e.id);
-      if (!r || (e.mod || 0) > (r.mod || 0)) toPush.push({ id: e.id, mod: e.mod || e.ts, payload: e });
-    }
-    // push in batches of 500 (avoids payload limits once the table is large)
-    for (let i = 0; i < toPush.length; i += 500) {
-      const batch = toPush.slice(i, i + 500);
-      const res2 = await fetch(base + "/rest/v1/ralph_events", { method: "POST", headers, body: JSON.stringify(batch) });
-      if (!res2.ok) throw new Error("push " + res2.status);
-    }
-    if (changedLocal) saveEvents();
-    syncState = { status: "ok", detail: "Synced " + fmtTime(Date.now()) + (toPush.length ? " · sent " + toPush.length : "") };
-    // quiet background syncs only redraw when something changed, and never while a sheet is open
-    if ((!quiet || changedLocal) && !$overlay.firstChild) render();
-    else renderIfSettings();
-  } catch (err) {
-    syncState = { status: "error", detail: "Sync failed: " + err.message };
-    renderIfSettings();
-  }
-}
-function renderIfSettings() { if (tab === "settings") render(); }
-
-// ===================== derived =====================
-function lastOf(pred) { const l = live(); for (let i = l.length - 1; i >= 0; i--) if (pred(l[i])) return l[i]; return null; }
-
-function derived() {
-  const now = Date.now();
-  const lastNapStart = lastOf(e => e.type === "napStart");
-  const lastNapEnd = lastOf(e => e.type === "napEnd");
-  const asleep = !!(lastNapStart && (!lastNapEnd || lastNapStart.ts > lastNapEnd.ts));
-  const awakeSince = lastNapEnd ? lastNapEnd.ts : null;
-  const lastWee = lastOf(e => e.type === "wee");
-  const lastPoo = lastOf(e => e.type === "poo");
-  const windowMs = settings.awakeWindowMin * 60000;
-  const awakeMs = !asleep && awakeSince ? now - awakeSince : 0;
-  const napFrac = !asleep && awakeSince ? Math.min(awakeMs / windowMs, 1) : 0;
-  return { now, lastNapStart, lastNapEnd, asleep, awakeSince, lastWee, lastPoo, windowMs, awakeMs, napFrac, overdue: napFrac >= 1 };
-}
-
-function insight(list) {
-  const wees = list.filter(e => e.type === "wee");
-  const poos = list.filter(e => e.type === "poo");
-  const out = arr => arr.filter(e => e.where === "outside").length;
-  const accidents = wees.length - out(wees) + poos.length - out(poos);
-  const food = list.filter(e => e.type === "meal").reduce((s, e) => s + (e.grams || 0), 0);
-  const windows = [];
-  let lastEnd = null;
-  list.forEach(e => {
-    if (e.type === "napEnd") lastEnd = e.ts;
-    if (e.type === "napStart" && lastEnd) { windows.push(e.ts - lastEnd); lastEnd = null; }
+  return fixtures.map(f => {
+    const r = dbResults[f.id];
+    return r ? {...f, winner:r.winner, homeScore:r.home_score, awayScore:r.away_score, checkout:r.checkout, homeAvg:r.home_avg, awayAvg:r.away_avg, date:r.date_played||'', referee:r.referee||'', refRating:r.ref_rating||0, refReview:r.ref_review||'', isPlayoff:true}
+             : {...f, winner:null, homeScore:null, awayScore:null, checkout:null, homeAvg:null, awayAvg:null, date:'', referee:'', refRating:0, refReview:'', isPlayoff:true};
   });
-  const avgWin = windows.length ? windows.reduce((a, b) => a + b, 0) / windows.length : null;
-  return { wees, poos, out, accidents, food, avgWin };
 }
 
-function sleepIntervals() {
-  const naps = live().filter(e => e.type === "napStart" || e.type === "napEnd").sort((a, b) => a.ts - b.ts);
-  const out = [];
-  let open = null;
-  for (const e of naps) {
-    if (e.type === "napStart") { if (open === null) open = e.ts; }
-    else { if (open !== null) { out.push([open, e.ts]); open = null; } }
+// ─── SEED ─────────────────────────────────────────────────────────────────────
+async function seedIfNeeded() {
+  for (const [id, data] of Object.entries(SEED_RESULTS)) {
+    if (!dbResults[id]) {
+      try {
+        await upsertResult(id, data);
+        dbResults[id] = { fixture_id:id, winner:data.winner, home_score:data.homeScore, away_score:data.awayScore, checkout:data.checkout, home_avg:data.homeAvg, away_avg:data.awayAvg, date_played:data.date };
+      } catch(e) { console.warn('Seed failed', id, e); }
+    }
   }
-  if (open !== null) out.push([open, Date.now()]);
-  return out;
-}
-function sleepForDay(k) {
-  // True 24h-day total: naps + any night sleep clipped at midnight.
-  // e.g. bed at 21:00 → 3h counts today, the rest counts tomorrow.
-  const [y, m, d] = k.split("-").map(Number);
-  const start = new Date(y, m - 1, d).getTime();
-  const end = start + 86400000;
-  let total = 0;
-  for (const [a, b] of sleepIntervals()) {
-    const s = Math.max(a, start), e = Math.min(b, end);
-    if (e > s) total += e - s;
-  }
-  return total;
 }
 
-// The most recent "overnight" sleep: the longest interval whose midpoint falls in
-// the 20:00–10:00 window, looking back up to 24h. Returns {ms, start, end} or null.
-function lastNightSleep() {
-  const now = Date.now();
-  let best = null;
-  for (const [a, b] of sleepIntervals()) {
-    if (b < now - 24 * 3600000) continue; // only the last day
-    const mid = new Date((a + b) / 2).getHours();
-    const overnight = mid >= 20 || mid < 10;
-    if (!overnight) continue;
-    if (!best || (b - a) > (best.end - best.start)) best = { start: a, end: b };
-  }
-  return best ? { ms: best.end - best.start, start: best.start, end: best.end } : null;
-}
-
-function ageWeeks() {
-  if (!settings.dob) return null;
-  const [y, m, d] = settings.dob.split("-").map(Number);
-  if (!y || !m || !d) return null;
-  return Math.floor((Date.now() - new Date(y, m - 1, d).getTime()) / (7 * 86400000));
-}
-function windowBand(w) {
-  if (w < 9) return [40, 60];
-  if (w < 11) return [50, 70];
-  if (w < 13) return [60, 85];
-  if (w < 17) return [75, 110];
-  if (w < 21) return [90, 130];
-  return [110, 180];
-}
-function sleepTargetText(w) {
-  if (w === null) return "~18–20h at 8wks";
-  if (w < 12) return "~18–20h at " + w + "wks";
-  if (w < 16) return "~16–18h at " + w + "wks";
-  if (w < 24) return "~14–16h at " + w + "wks";
-  return "~12–14h at " + w + "wks";
-}
-
-function avgAwakeMin7d() {
-  const weekAgo = Date.now() - 7 * 86400000;
-  const naps = live().filter(e => (e.type === "napStart" || e.type === "napEnd") && e.ts > weekAgo).sort((a, b) => a.ts - b.ts);
-  const windows = [];
-  let lastEnd = null;
-  naps.forEach(e => {
-    if (e.type === "napEnd") lastEnd = e.ts;
-    if (e.type === "napStart" && lastEnd) { windows.push(e.ts - lastEnd); lastEnd = null; }
+// ─── STANDINGS ────────────────────────────────────────────────────────────────
+function computeStandings() {
+  const fixtures = getFixtures();
+  const stats = {};
+  PLAYERS.forEach(p => { stats[p] = {name:p,p:0,w:0,l:0,pts:0,avgSum:0,avgCount:0,ck:0,ckTotal:0,highCk:0}; });
+  fixtures.forEach(f => {
+    if (f.home==='BYE'||f.away==='BYE'||!f.winner) return;
+    const h=stats[f.home], a=stats[f.away];
+    if (!h||!a) return;
+    h.p++; a.p++;
+    if (f.winner===f.home){h.w++;h.pts+=3;a.l++;}else{a.w++;a.pts+=3;h.l++;}
+    if (f.checkout && stats[f.winner]) {
+      stats[f.winner].ck++;
+      stats[f.winner].ckTotal += f.checkout;
+      if (f.checkout > stats[f.winner].highCk) stats[f.winner].highCk = f.checkout;
+    }
+    if (f.homeAvg){h.avgSum+=f.homeAvg;h.avgCount++;}
+    if (f.awayAvg){a.avgSum+=f.awayAvg;a.avgCount++;}
   });
-  if (windows.length < 4) return null; // not enough data to advise
-  return Math.round(windows.reduce((a, b) => a + b, 0) / windows.length / 60000);
-}
 
-function prettyDay(k) {
-  const [y, m, d] = k.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  if (k === dayKey(Date.now())) return "Today";
-  if (k === dayKey(Date.now() - 86400000)) return "Yesterday";
-  return date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-}
-function shortDay(k) { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString("en-GB", { weekday: "short" }); }
+  const players = PLAYERS.map(p=>{const s=stats[p];return{...s,avg:s.avgCount>0?s.avgSum/s.avgCount:0};});
 
-// ===================== CSV =====================
-function toCSV() {
-  const rows = [["date", "time", "type", "detail", "outcome"]];
-  live().forEach(e => {
-    let detail = "", outcome = "";
-    if (e.type === "wee" || e.type === "poo") { detail = e.where; outcome = e.where === "outside" ? "good" : "accident"; }
-    if (e.type === "meal") detail = e.grams + "g " + (e.finished === false ? "unfinished" : "finished");
-    if (e.type === "flag") detail = e.flag;
-    if (e.type === "note") detail = (e.text || "").replace(/,/g, ";");
-    rows.push([dayKey(e.ts), fmtTime(e.ts), e.type, detail, outcome]);
-  });
-  return rows.map(r => r.join(",")).join("\n");
-}
-function downloadCSV() {
-  const blob = new Blob([toCSV()], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "ralphs-day-" + dayKey(Date.now()) + ".csv";
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-// ===================== UI =====================
-const $main = document.getElementById("main");
-const $nav = document.getElementById("nav");
-const $overlay = document.getElementById("overlay");
-const $clock = document.getElementById("clock");
-
-let toastTimer = null;
-function toast(msg, undoId) {
-  const slot = document.getElementById("toast-slot");
-  slot.innerHTML = '<div class="toast">' + esc(msg) +
-    (undoId ? ' &nbsp;<button onclick="undoEvent(\'' + undoId + '\')" style="background:none;border:1px solid #6b7bb0;border-radius:14px;color:#ffc86b;font-weight:700;padding:2px 12px;margin-left:6px;cursor:pointer">Undo</button>' : "") +
-    "</div>";
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { slot.innerHTML = ""; }, undoId ? 5000 : 2400);
-}
-function undoEvent(ids) {
-  String(ids).split(",").forEach(id => deleteEvent(id));
-  render();
-  toast("↩️ Undone");
-}
-function updateSyncDot() {
-  const dot = document.getElementById("sync-dot");
-  if (!dot) return;
-  let c = "#f0b23e", t = "Sync not configured — data stays on this device";
-  if (settings.supabaseUrl) {
-    if (syncState.status === "error") { c = "#ff7a6e"; t = "Sync failing — tap for details"; }
-    else if (syncState.status === "ok") { c = "#5fbf82"; t = "Synced"; }
-    else { c = "#7fb4ff"; t = "Syncing…"; }
-  }
-  dot.style.background = c;
-  dot.title = t;
-}
-
-function closeSheet() { $overlay.innerHTML = ""; }
-function sheet(title, bodyHTML) {
-  $overlay.innerHTML =
-    '<div class="sheet-backdrop" onclick="if(event.target===this)closeSheet()">' +
-    '<div class="sheet"><div class="sheet-title">' + esc(title) + "</div>" + bodyHTML +
-    '<button class="sheet-cancel" onclick="closeSheet()">Close</button></div></div>';
-}
-
-function logBothOutside() {
-  const now = Date.now();
-  const wee = { id: uid(), ts: now, mod: now, dev: deviceId, type: "wee", where: "outside" };
-  const poo = { id: uid(), ts: now + 1000, mod: now, dev: deviceId, type: "poo", where: "outside" };
-  events.push(wee, poo);
-  saveEvents();
-  render();
-  toast("💧💩 Wee + poo outside · " + fmtTime(now), wee.id + "," + poo.id);
-  scheduleSync();
-}
-
-function openMeal() {
-  sheet("Log a meal",
-    '<button class="sheet-btn" onclick="addEvent({type:\'meal\',grams:' + settings.mealSizeG + ',finished:true});closeSheet()">🍚 ' + settings.mealSizeG + "g — finished it</button>" +
-    '<button class="sheet-btn alt" onclick="addEvent({type:\'meal\',grams:' + settings.mealSizeG + ',finished:false});closeSheet()">🍚 ' + settings.mealSizeG + "g — left some</button>");
-}
-function openFlags() {
-  sheet("What's happening?",
-    '<div class="flag-grid">' + FLAGS.map(f =>
-      '<button class="flag-btn" onclick="addEvent({type:\'flag\',flag:\'' + f.key + '\'});closeSheet()"><span class="ico">' + f.icon + "</span><span>" + esc(f.label) + "</span></button>"
-    ).join("") + "</div>");
-}
-function openEdit(id) {
-  const e = events.find(x => x.id === id);
-  if (!e) return;
-  const meta = eventMeta(e);
-  sheet("Adjust — " + meta.label,
-    '<div class="edit-time" id="edit-time">' + fmtTime(e.ts) + "</div>" +
-    '<div class="step-row">' + [-30, -5, -1, 1, 5, 30].map(d =>
-      '<button class="step-btn" onclick="shiftEvent(\'' + id + "'," + d + ');document.getElementById(\'edit-time\').textContent=fmtTime(events.find(x=>x.id===\'' + id + "').ts)\">" + (d > 0 ? "+" + d : d) + "</button>"
-    ).join("") + "</div>" +
-    '<button class="sheet-btn danger" onclick="deleteEvent(\'' + id + "');closeSheet();render()\">🗑 Delete entry</button>");
-}
-
-function render() {
-  $clock.textContent = fmtTime(Date.now());
-  updateSyncDot();
-  $nav.innerHTML = [["now", "🐶", "Now"], ["log", "📋", "Log"], ["insights", "📈", "Insights"], ["settings", "⚙️", "Set-up"]]
-    .map(([k, icon, lbl]) =>
-      '<button class="' + (tab === k ? "active" : "") + '" onclick="tab=\'' + k + '\';render()"><span class="ico">' + icon + '</span><span class="lbl">' + lbl + "</span></button>"
-    ).join("");
-  if (tab === "now") renderNow();
-  else if (tab === "log") renderLog();
-  else if (tab === "insights") renderInsights();
-  else renderSettings();
-}
-
-function renderNow() {
-  const d = derived();
-  const R = 84, CIRC = 2 * Math.PI * R;
-  const ringColor = d.asleep ? "var(--blue)" : d.overdue ? "var(--red)" : d.napFrac > 0.8 ? "#ffb45e" : "var(--amber)";
-  const offset = d.asleep ? 0 : CIRC * (1 - d.napFrac);
-  let inner;
-  if (d.asleep) {
-    inner = '<div class="hero-big">😴</div><div class="hero-label">Asleep since ' + fmtTime(d.lastNapStart.ts) + '</div><div class="hero-sub">' + fmtDur(d.now - d.lastNapStart.ts) + " so far</div>";
-  } else if (d.awakeSince) {
-    inner = '<div class="hero-big display' + (d.overdue ? " overdue" : "") + '">' + fmtDur(d.awakeMs) + '</div><div class="hero-label">awake</div><div class="hero-sub' + (d.overdue ? " overdue" : "") + '">' +
-      (d.overdue ? "Nap overdue — wind down now" : "Nap due ~" + fmtTime(d.awakeSince + d.windowMs)) + "</div>";
-  } else {
-    inner = '<div class="hero-big">🐶</div><div class="hero-sub">Tap "Woke up" or "Nap" to start the clock</div>';
-  }
-  const weeAgo = d.lastWee ? d.now - d.lastWee.ts : null;
-  const weeDue = weeAgo !== null && weeAgo > settings.weeWarnMin * 60000 && !d.asleep;
-  const foodToday = live().filter(e => e.type === "meal" && dayKey(e.ts) === dayKey(d.now)).reduce((s, e) => s + (e.grams || 0), 0);
-
-  $main.innerHTML =
-    '<div class="hero"><svg width="220" height="220" viewBox="0 0 220 220">' +
-    '<circle cx="110" cy="110" r="' + R + '" stroke="#232a3d" stroke-width="14" fill="none"/>' +
-    '<circle cx="110" cy="110" r="' + R + '" stroke="' + ringColor + '" stroke-width="14" fill="none" stroke-linecap="round" stroke-dasharray="' + CIRC + '" stroke-dashoffset="' + offset + '" transform="rotate(-90 110 110)" style="transition:stroke-dashoffset 0.6s ease"/>' +
-    '</svg><div class="hero-inner">' + inner + "</div></div>" +
-    '<div class="strip" style="border-color:' + (weeDue ? "#ff7a6e55" : "#2a3248") + '"><span>💧 Last wee: <b class="' + (weeDue ? "due" : "") + '">' + (d.lastWee ? fmtDur(weeAgo) + " ago" : "not logged") + "</b></span><span>💩 " + (d.lastPoo ? fmtDur(d.now - d.lastPoo.ts) + " ago" : "—") + "</span></div>" +
-    '<div class="strip"><span>😴 Slept today: <b>' + fmtDur(sleepForDay(dayKey(d.now))) + "</b></span><span style=\"color:var(--dim)\">aiming " + sleepTargetText(ageWeeks()) + "</span></div>" +
-    (function () {
-      const ln = lastNightSleep();
-      if (!ln) return "";
-      return '<div class="strip"><span>🌙 Last night: <b>' + fmtDur(ln.ms) + "</b></span><span style=\"color:var(--dim)\">" + fmtTime(ln.start) + "–" + fmtTime(ln.end) + "</span></div>";
-    })() +
-    '<button class="sleep-btn' + (d.asleep ? " asleep" : "") + '" onclick="addEvent({type:\'' + (d.asleep ? "napEnd" : "napStart") + "'})\">" + (d.asleep ? "☀️ Woke up" : "😴 Nap started") + "</button>" +
-    '<div class="grid-label">Toilet — one tap</div>' +
-    '<div class="grid2">' +
-    '<button class="big-btn good" onclick="addEvent({type:\'wee\',where:\'outside\'})"><span class="ico">💧</span>Wee outside</button>' +
-    '<button class="big-btn bad" onclick="addEvent({type:\'wee\',where:\'inside\'})"><span class="ico">💧</span>Wee inside</button>' +
-    '<button class="big-btn good" onclick="addEvent({type:\'poo\',where:\'outside\'})"><span class="ico">💩</span>Poo outside</button>' +
-    '<button class="big-btn bad" onclick="addEvent({type:\'poo\',where:\'inside\'})"><span class="ico">💩</span>Poo inside</button>' +
-    "</div>" +
-    '<button class="big-btn good" style="width:100%;flex-direction:row;gap:10px;padding:13px 8px;margin-bottom:14px" onclick="logBothOutside()"><span style="font-size:20px">💧💩</span>Wee + poo outside</button> ' +
-    '<div class="grid2">' +
-    '<button class="big-btn" onclick="openMeal()"><span class="ico">🍚</span>Meal (' + foodToday + "/" + settings.foodTargetG + "g)</button>" +
-    '<button class="big-btn" onclick="openFlags()"><span class="ico">🏷</span>Behaviour / event</button>' +
-    "</div>";
-}
-
-function renderLog() {
-  const days = {};
-  live().forEach(e => { const k = dayKey(e.ts); (days[k] = days[k] || []).push(e); });
-  const keys = Object.keys(days).sort().reverse();
-  if (!keys.length) { $main.innerHTML = '<div class="empty">Nothing logged yet. Everything you tap lands here.</div>'; return; }
-  $main.innerHTML = '<div class="hint">Tap any entry to adjust its time or delete it.</div>' + keys.map(k =>
-    '<div class="day-header">' + prettyDay(k) + "</div>" +
-    days[k].slice().reverse().map(e => {
-      const m = eventMeta(e);
-      const cls = m.good === true ? "good" : m.good === false ? "bad" : "";
-      const mark = m.good === true ? " ✅" : m.good === false ? " ❌" : "";
-      return '<button class="log-row" onclick="openEdit(\'' + e.id + '\')"><span class="log-time">' + fmtTime(e.ts) + '</span><span style="font-size:18px">' + m.icon + '</span><span class="log-label ' + cls + '">' + esc(m.label) + mark + "</span></button>";
-    }).join("")
-  ).join("");
-}
-
-function renderInsights() {
-  const days = {};
-  live().forEach(e => { const k = dayKey(e.ts); (days[k] = days[k] || []).push(e); });
-  const keysAsc = Object.keys(days).sort();
-  if (!keysAsc.length) { $main.innerHTML = '<div class="empty">Insights appear once you\'ve logged a day or two.</div>'; return; }
-  const rows = keysAsc.map(k => ({ k, i: insight(days[k]) }));
-  const maxAcc = Math.max(1, ...rows.map(r => r.i.accidents));
-  // accident context: last 7 days, inside accidents near a zoomies/visitors flag
-  const weekAgo = Date.now() - 7 * 86400000;
-  const recent = live().filter(e => e.ts > weekAgo);
-  const accs = recent.filter(e => (e.type === "wee" || e.type === "poo") && e.where === "inside");
-  const ctxFlags = recent.filter(e => e.type === "flag" && (e.flag === "zoomies" || e.flag === "visitors"));
-  const near = a => ctxFlags.filter(f => Math.abs(a.ts - f.ts) <= 30 * 60000);
-  const linked = accs.filter(a => near(a).length > 0);
-  const byFlag = {};
-  linked.forEach(a => near(a).forEach(f => { byFlag[f.flag] = (byFlag[f.flag] || 0) + 1; }));
-  let contextCard = "";
-  if (accs.length > 0) {
-    const parts = Object.entries(byFlag).map(([f, n]) => (f === "zoomies" ? "🌀 zoomies" : "🚪 visitors") + " (" + n + ")").join(", ");
-    contextCard = '<div class="day-header">Accident context — last 7 days</div>' +
-      '<div style="background:var(--panel);border:1px solid var(--panel-b);border-radius:14px;padding:14px;font-size:14px;line-height:1.5">' +
-      "<b>" + linked.length + " of " + accs.length + "</b> inside accidents happened within 30 mins of " + (parts || "a logged trigger") + "." +
-      (accs.length >= 3 && linked.length / accs.length >= 0.5 ? '<div style="color:var(--dim);font-size:13px;margin-top:6px">Strong pattern — overstimulation is driving accidents more than house-training. Earlier wind-downs on busy days should cut these.</div>' : "") +
-      (linked.length === 0 ? '<div style="color:var(--dim);font-size:13px;margin-top:6px">No link to logged 🌀/🚪 flags yet — tag those moments as they happen and patterns will show here.</div>' : "") +
-      "</div>";
-  }
-  $main.innerHTML =
-    contextCard +
-    '<div class="day-header">Accidents per day</div>' +
-    '<div class="chart">' + rows.map(({ k, i }) =>
-      '<div class="chart-col"><div class="chart-num" style="color:' + (i.accidents === 0 ? "var(--green)" : "var(--red2)") + '">' + i.accidents + '</div><div class="bar" style="height:' + (8 + (i.accidents / maxAcc) * 60) + "px;background:" + (i.accidents === 0 ? "#3a6b4f" : "#a5525e") + '"></div><div class="chart-lbl">' + shortDay(k) + "</div></div>"
-    ).join("") + "</div>" +
-    rows.slice().reverse().map(({ k, i }) => {
-      const weeRate = i.wees.length ? Math.round((i.out(i.wees) / i.wees.length) * 100) : null;
-      const pooRate = i.poos.length ? Math.round((i.out(i.poos) / i.poos.length) * 100) : null;
-      const stat = (lbl, val, good) => '<div class="stat"><div class="stat-val ' + (good === true ? "good" : good === false ? "bad" : "") + '">' + val + '</div><div class="stat-lbl">' + lbl + "</div></div>";
-      return '<div class="day-header">' + prettyDay(k) + '</div><div class="insight-row">' +
-        stat("Sleep", fmtDur(sleepForDay(k)), sleepForDay(k) >= 16 * 3600000) +
-        stat("Wees out", weeRate === null ? "—" : weeRate + "%", weeRate === null ? null : weeRate >= 80) +
-        stat("Poos out", pooRate === null ? "—" : pooRate + "%", pooRate === null ? null : pooRate >= 80) +
-        stat("Food", i.food + "g", i.food >= settings.foodTargetG) +
-        stat("Avg awake", i.avgWin ? fmtDur(i.avgWin) : "—", i.avgWin ? i.avgWin <= settings.awakeWindowMin * 60000 * 1.2 : null) +
-        "</div>";
-    }).join("") +
-    (function () {
-      // accidents by hour of day, last 14 days
-      const since = Date.now() - 14 * 86400000;
-      const accs = live().filter(e => (e.type === "wee" || e.type === "poo") && e.where === "inside" && e.ts > since);
-      if (accs.length < 3) return "";
-      const byHour = new Array(24).fill(0);
-      accs.forEach(e => { byHour[new Date(e.ts).getHours()]++; });
-      const max = Math.max(...byHour);
-      const peak = byHour.indexOf(max);
-      // condensed 3-hour buckets for a phone-friendly row
-      const buckets = [["12–6am",0,6],["6–9am",6,9],["9–12pm",9,12],["12–3pm",12,15],["3–6pm",15,18],["6–9pm",18,21],["9–12am",21,24]];
-      const cells = buckets.map(([lbl, a, b]) => {
-        let n = 0; for (let h = a; h < b; h++) n += byHour[h];
-        const intensity = max ? n / max : 0;
-        const bg = n === 0 ? "#1b2133" : "rgba(255,122,110," + (0.25 + intensity * 0.6).toFixed(2) + ")";
-        return '<div style="flex:1;text-align:center"><div style="height:' + (10 + intensity * 44) + 'px;background:' + bg + ';border-radius:6px;margin-bottom:4px;display:flex;align-items:flex-end;justify-content:center;color:#fff;font-size:12px;font-family:\'Fredoka\',sans-serif">' + (n || "") + '</div><div style="font-size:9px;color:var(--dim)">' + lbl + "</div></div>";
-      }).join("");
-      return '<div class="day-header">When accidents happen — last 14 days</div>' +
-        '<div style="display:flex;gap:4px;align-items:flex-end;background:var(--panel);border:1px solid var(--panel-b);border-radius:14px;padding:14px 10px">' + cells + "</div>" +
-        '<div class="hint">Busiest window: <b>' + buckets.find(([l,a,b]) => peak >= a && peak < b)[0] + "</b>. If that's the evening, it's the witching-hour overtiredness — earlier wind-downs there will move the needle most.</div>";
-    })() +
-    '<div class="hint">As "avg awake" trends up week on week, nudge the awake window in Set-up — that\'s Ralph growing.</div>';
-}
-
-function stepperSetting(name, hint, key, step, min, max) {
-  return '<div class="setting"><div><div class="setting-name">' + name + '</div><div class="setting-hint">' + hint + "</div></div>" +
-    '<div class="stepper"><button class="step-btn" onclick="bump(\'' + key + "'," + (-step) + "," + min + "," + max + ')">−</button><span class="val">' + settings[key] + '</span><button class="step-btn" onclick="bump(\'' + key + "'," + step + "," + min + "," + max + ')">＋</button></div></div>';
-}
-function bump(key, delta, min, max) {
-  settings[key] = Math.min(max, Math.max(min, settings[key] + delta));
-  saveSettings(); render();
-}
-function saveSync() {
-  settings.supabaseUrl = document.getElementById("sb-url").value.trim();
-  settings.supabaseKey = document.getElementById("sb-key").value.trim();
-  saveSettings();
-  if (settings.supabaseUrl) syncNow(); else { syncState = { status: "off", detail: "" }; render(); }
-}
-// ===================== push notifications =====================
-let notifState = "";
-function urlB64ToUint8(b64) {
-  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
-  const raw = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
-  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
-}
-async function enableNotifications() {
-  try {
-    if (!settings.supabaseUrl || !settings.supabaseKey) { notifState = "Set up shared sync first — pushes ride on Supabase"; render(); return; }
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) { notifState = "Not supported here — on iPhone this only works from the Home Screen app"; render(); return; }
-    const perm = await Notification.requestPermission();
-    if (perm !== "granted") { notifState = "Permission declined — enable in iOS Settings → Ralph"; render(); return; }
-    const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(VAPID_PUBLIC) });
-    const base = settings.supabaseUrl.replace(/\/+$/, "");
-    const res = await fetch(base + "/rest/v1/push_subscriptions", {
-      method: "POST",
-      headers: { apikey: settings.supabaseKey, Authorization: "Bearer " + settings.supabaseKey, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
-      body: JSON.stringify([{ endpoint: sub.endpoint, device: deviceId, sub: sub.toJSON() }]),
+  // Head-to-head: returns 1 if a wins h2h, -1 if b wins, 0 if draw
+  function h2h(nameA, nameB) {
+    let aWins=0, bWins=0;
+    fixtures.forEach(f => {
+      if (f.home==='BYE'||f.away==='BYE'||!f.winner) return;
+      const involves = (f.home===nameA&&f.away===nameB)||(f.home===nameB&&f.away===nameA);
+      if (!involves) return;
+      if (f.winner===nameA) aWins++;
+      else bWins++;
     });
-    if (!res.ok) throw new Error("save " + res.status);
-    localStorage.setItem("ralph-notif", "on");
-    notifState = "✅ Notifications on for this phone";
-  } catch (err) {
-    notifState = "Failed: " + err.message;
+    if (aWins>bWins) return 1;
+    if (bWins>aWins) return -1;
+    return 0;
   }
-  render();
+
+  return players.sort((a,b) => {
+    // 1. Points
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    // 2. Head-to-head
+    const h = h2h(a.name, b.name);
+    if (h !== 0) return -h;
+    // 3. Checkout count
+    if (b.ck !== a.ck) return b.ck - a.ck;
+    // 4. Checkout total
+    if (b.ckTotal !== a.ckTotal) return b.ckTotal - a.ckTotal;
+    // 5. Average
+    return b.avg - a.avg;
+  });
 }
 
-function reimportSeed() {
-  const have = new Set(events.map(e => e.id));
-  buildSeed(settings.mealSizeG).forEach(e => { if (!have.has(e.id)) events.push(e); });
-  saveEvents(); render(); toast("📥 Written log imported"); scheduleSync();
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function initials(n){return n.slice(0,2).toUpperCase();}
+function avatarHtml(name,size=32){const c=COLORS[name]||'#888';return `<div class="avatar" style="width:${size}px;height:${size}px;background:${c}">${initials(name)}</div>`;}
+function playerForm(name){
+  const fixtures=getFixtures();
+  const played=fixtures.filter(f=>(f.home===name||f.away===name)&&f.winner&&f.home!=='BYE'&&f.away!=='BYE');
+  const pending=fixtures.filter(f=>(f.home===name||f.away===name)&&!f.winner&&f.home!=='BYE'&&f.away!=='BYE').slice(0,3);
+  const dots=played.map(f=>`<div class="dot ${f.winner===name?'W':'L'}"></div>`);
+  pending.forEach(()=>dots.push(`<div class="dot P"></div>`));
+  return `<div class="form-dots">${dots.join('')}</div>`;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function buildStarPicker(fixtureId, value){
+  value = value||0;
+  let stars='';
+  for(let i=1;i<=5;i++){
+    stars += `<span class="star ${i<=value?'filled':''}" data-star="${i}" onclick="setStarRating('${fixtureId}',${i})">★</span>`;
+  }
+  return `<div class="star-picker" id="rf-stars-${fixtureId}">${stars}</div><input type="hidden" id="rf-rating-${fixtureId}" value="${value||''}">`;
+}
+function setStarRating(fixtureId, val){
+  const hidden=document.getElementById('rf-rating-'+fixtureId);
+  const picker=document.getElementById('rf-stars-'+fixtureId);
+  const current=parseInt(hidden.value)||0;
+  const newVal=(current===val)?0:val; // click same star again to clear
+  hidden.value=newVal;
+  picker.querySelectorAll('.star').forEach(s=>{
+    const n=parseInt(s.dataset.star);
+    s.classList.toggle('filled', n<=newVal);
+  });
+}
+function buildStarDisplay(rating){
+  if(!rating) return '';
+  let stars='';
+  for(let i=1;i<=5;i++){
+    stars += `<span class="star ${i<=rating?'filled':''}">★</span>`;
+  }
+  return `<div class="ref-stars-display">${stars}</div>`;
+}
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=`toast ${type} show`;
+  setTimeout(()=>t.classList.remove('show'),2800);
 }
 
-function renderSettings() {
-  const syncColor = syncState.status === "ok" ? "var(--green)" : syncState.status === "error" ? "var(--red2)" : "var(--dim)";
-  $main.innerHTML =
-    stepperSetting("Awake window (mins)", "~45–60 at 8 weeks; grows as he does", "awakeWindowMin", 5, 20, 180) +
-    (function () {
-      const avg = avgAwakeMin7d();
-      if (avg === null) return "";
-      const w = ageWeeks();
-      const band = w !== null ? windowBand(w) : null;
-      let suggestion = Math.round(avg / 5) * 5;
-      let bandNote = "";
-      if (band) {
-        suggestion = Math.min(band[1], Math.max(band[0], suggestion));
-        bandNote = " Healthy range at " + w + " weeks: " + band[0] + "–" + band[1] + " mins.";
-      }
-      const zoomies7d = live().filter(e => e.type === "flag" && e.flag === "zoomies" && e.ts > Date.now() - 7 * 86400000).length;
-      const frazzled = zoomies7d >= 4;
-      let inner = "📊 His real windows average <b>" + avg + " mins</b> over the last 7 days." + bandNote;
-      if (frazzled) {
-        inner += ' <span style="color:#f0b23e">High-zoomie week (' + zoomies7d + ' 🌀) — averages likely reflect overtiredness, so no suggestion. Shorter windows are the usual fix.</span>';
-      } else if (Math.abs(suggestion - settings.awakeWindowMin) >= 10) {
-        inner += ' <button onclick="settings.awakeWindowMin=' + suggestion + ';saveSettings();render()" style="background:#31406b;border:none;border-radius:10px;color:var(--ink);font-weight:600;padding:4px 12px;margin-left:6px;cursor:pointer">Set to ' + suggestion + "</button>";
-      }
-      if (w === null) inner += ' <span style="color:var(--dim)">Add his date of birth below for age-aware advice.</span>';
-      return '<div style="background:var(--panel);border:1px solid var(--panel-b);border-radius:14px;padding:12px 14px;margin:-4px 0 10px;font-size:13px;line-height:1.6;color:var(--dim)">' + inner + "</div>";
-    })() +
-    stepperSetting("Wee reminder (mins)", "Highlight when it's been this long", "weeWarnMin", 5, 15, 240) +
-    stepperSetting("Daily food target (g)", "Currently 150g/day", "foodTargetG", 10, 50, 500) +
-    stepperSetting("Meal size (g)", "Quick-log portion", "mealSizeG", 5, 10, 200) +
-    '<div class="setting text-setting" style="display:block">' +
-    '<div class="setting-name">Shared sync (optional)</div>' +
-    '<div class="setting-hint">Paste your Supabase project URL and anon key on both phones to share one log. See the README for the 5-minute setup.</div>' +
-    '<input id="sb-url" placeholder="https://xxxx.supabase.co" value="' + esc(settings.supabaseUrl) + '">' +
-    '<input id="sb-key" placeholder="anon key" value="' + esc(settings.supabaseKey) + '">' +
-    '<button class="sheet-btn" style="margin-top:10px" onclick="saveSync()">Save & sync now</button>' +
-    '<div class="sync-status" style="color:' + syncColor + '">' + (syncState.detail || (settings.supabaseUrl ? "Configured" : "Not configured — data stays on this phone")) + "</div>" +
-    "</div>" +
-    '<div class="setting"><div><div class="setting-name">Ralph\'s date of birth</div><div class="setting-hint">' + (ageWeeks() !== null ? "Currently " + ageWeeks() + " weeks old — targets adjust as he grows" : "Powers age-aware sleep targets and window advice") + '</div></div>' +
-    '<input type="date" value="' + esc(settings.dob || "") + '" onchange="settings.dob=this.value;saveSettings();render()" style="background:var(--bg);border:1px solid var(--panel-b2);border-radius:10px;color:var(--ink);padding:8px;font-family:inherit"></div>' +
-    '<div class="setting" style="display:block">' +
-    '<div class="setting-name">Notifications</div>' +
-    '<div class="setting-hint">Nap/wee reminders and "logged" alerts from the other phone. Needs shared sync configured, and on iPhone must be enabled from the Home Screen app (not Safari).</div>' +
-    '<button class="sheet-btn" style="margin-top:10px" onclick="enableNotifications()">🔔 Enable notifications on this phone</button>' +
-    '<div class="sync-status" style="color:var(--dim)">' + esc(notifState || (localStorage.getItem("ralph-notif") === "on" ? "✅ Enabled on this phone" : "Not enabled on this phone")) + "</div>" +
-    "</div>" +
-    '<button class="sheet-btn" style="margin-top:8px" onclick="downloadCSV()">📤 Download all data (CSV)</button>' +
-    '<button class="sheet-btn" style="background:#252c40;border:1px solid var(--panel-b2)" onclick="reimportSeed()">📥 Import written log (5–9 July)</button>' +
-    '<div class="hint">Data is stored on this phone (and in Supabase if sync is on). The first four days (5–8 July) came from the written log — day one\'s toilet times are estimates.</div>';
+// ─── FORM OPEN/CLOSE ──────────────────────────────────────────────────────────
+function openForm(id){
+  if(openFormId){const p=document.getElementById('form-'+openFormId);if(p)p.classList.remove('open');}
+  openFormId=id;
+  const el=document.getElementById('form-'+id);
+  if(el){el.classList.add('open');el.scrollIntoView({behavior:'smooth',block:'nearest'});}
+}
+function closeForm(id){
+  const el=document.getElementById('form-'+id);
+  if(el)el.classList.remove('open');
+  if(openFormId===id)openFormId=null;
 }
 
-// ===================== boot =====================
-function applyNight() {
-  document.body.classList.toggle("night", !!settings.night);
-  const b = document.getElementById("night-btn");
-  if (b) b.style.opacity = settings.night ? "1" : "0.5";
+async function saveResultForm(id, isPlayoff=false) {
+  const allFixtures = isPlayoff ? getPlayoffFixtures() : getFixtures();
+  const f = allFixtures.find(x=>x.id===id);
+  if(!f) return;
+  const winner=document.getElementById('rf-winner-'+id).value;
+  if(!winner){showToast('Please select a winner','error');return;}
+  const checkout=parseInt(document.getElementById('rf-checkout-'+id).value)||null;
+  const homeAvg=parseFloat(document.getElementById('rf-havg-'+id).value)||null;
+  const awayAvg=parseFloat(document.getElementById('rf-aavg-'+id).value)||null;
+  const date=document.getElementById('rf-date-'+id).value;
+  const referee=(document.getElementById('rf-referee-'+id).value||'').trim();
+  const refRating=parseInt(document.getElementById('rf-rating-'+id).value)||null;
+  const refReview=(document.getElementById('rf-review-'+id).value||'').trim();
+
+  let homeScore, awayScore;
+  if(isPlayoff){
+    const hsEl=document.getElementById('rf-hscore-'+id);
+    const asEl=document.getElementById('rf-ascore-'+id);
+    homeScore=hsEl?parseInt(hsEl.value)||0:0;
+    awayScore=asEl?parseInt(asEl.value)||0:0;
+  } else {
+    homeScore=winner===f.home?1:0;
+    awayScore=winner===f.away?1:0;
+  }
+
+  const btn=document.querySelector(`#form-${id} .rf-save`);
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  try {
+    await upsertResult(id,{winner,homeScore,awayScore,checkout,homeAvg,awayAvg,date,referee,refRating,refReview});
+    dbResults[id]={fixture_id:id,winner,home_score:homeScore,away_score:awayScore,checkout,home_avg:homeAvg,away_avg:awayAvg,date_played:date,referee,ref_rating:refRating,ref_review:refReview};
+    closeForm(id);
+    showToast(`✓ ${winner} wins saved`);
+    renderAll();
+  } catch(e){
+    showToast('Failed to save — check connection','error');
+    if(btn){btn.disabled=false;btn.textContent='Save Result';}
+  }
 }
-load();
-applyNight();
-render();
-setInterval(() => { if (tab === "now") render(); else $clock.textContent = fmtTime(Date.now()); }, 15000);
-if (settings.supabaseUrl) syncNow();
-// auto-pull: every 60s while visible, and whenever the app returns to the foreground
-setInterval(() => { if (settings.supabaseUrl && !document.hidden) syncNow(true); }, 60000);
-document.addEventListener("visibilitychange", () => { if (!document.hidden && settings.supabaseUrl) syncNow(true); });
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
+
+async function clearResult(id){
+  if(!confirm('Clear this result? This will update for all viewers.'))return;
+  try{
+    await deleteResult(id);
+    delete dbResults[id];
+    closeForm(id);
+    showToast('Result cleared');
+    renderAll();
+  }catch(e){showToast('Failed to clear — check connection','error');}
+}
+
+// ─── BUILD FIXTURE CARD HTML ──────────────────────────────────────────────────
+function buildFixtureCard(f, isPlayoff=false) {
+  const isBye=f.home==='BYE'||f.away==='BYE';
+  const isTbd=!f.home||!f.away; // playoff with unknown players yet
+  const played=!!f.winner;
+  const homeWin=played&&f.winner===f.home;
+  const awayWin=played&&f.winner===f.away;
+
+  let fixCls='fixture';
+  if(isPlayoff) fixCls+=' playoff-fixture';
+  if(isBye) fixCls+=' bye';
+  else if(isTbd) fixCls+=' tbd-fixture';
+  else if(!played) fixCls+=' pending-fixture';
+  else if(homeWin) fixCls+=' winner-home';
+  else if(awayWin) fixCls+=' winner-away';
+
+  const homeNameCls=played?(homeWin?'player-name winner':'player-name loser'):'player-name';
+  const awayNameCls=played?(awayWin?'player-name winner':'player-name loser'):'player-name';
+
+  const homeDisplay=f.home||'TBD';
+  const awayDisplay=f.away||'TBD';
+
+  let centerHtml;
+  if(isBye){
+    centerHtml=`<div class="match-center"><div class="score pending">BYE</div></div>`;
+  } else if(isTbd){
+    centerHtml=`<div class="match-center"><div class="score pending">TBC</div><div class="match-meta" style="color:var(--muted);font-size:9px">Awaiting league finish</div>${isPlayoff?'<span class="bo3-badge">BO3</span>':''}</div>`;
+  } else if(played){
+    centerHtml=`<div class="match-center">
+      <div class="score">${f.homeScore} – ${f.awayScore}</div>
+      ${f.checkout?`<span class="checkout-badge">CK ${f.checkout}</span>`:''}
+      ${isPlayoff?'<span class="bo3-badge">BO3</span>':''}
+      ${f.date?`<div class="match-meta">${f.date}</div>`:''}
+      <button class="edit-btn" onclick="event.stopPropagation();openForm('${f.id}')">Edit</button>
+    </div>`;
+  } else {
+    centerHtml=`<div class="match-center">
+      <div class="score pending">TBC</div>
+      ${isPlayoff?'<span class="bo3-badge">BO3</span>':''}
+      ${f.date?`<div class="match-meta">${f.date}</div>`:''}
+      <div class="enter-result-hint">+ Enter result</div>
+    </div>`;
+  }
+
+  const clickAttr=(!isBye&&!isTbd&&!played)?`onclick="openForm('${f.id}')"`:'' ;
+
+  // Score fields for Bo3 playoff form
+  const scoreFields = isPlayoff ? `
+    <div class="rf-field">
+      <label class="rf-label">Legs — ${homeDisplay}</label>
+      <select class="rf-select" id="rf-hscore-${f.id}">
+        <option value="2">2</option><option value="1">1</option><option value="0">0</option>
+      </select>
+    </div>
+    <div class="rf-field">
+      <label class="rf-label">Legs — ${awayDisplay}</label>
+      <select class="rf-select" id="rf-ascore-${f.id}">
+        <option value="0">0</option><option value="1">1</option><option value="2">2</option>
+      </select>
+    </div>` : '';
+
+  const playerOptions = [homeDisplay,awayDisplay].filter(p=>p!=='BYE'&&p!=='TBD')
+    .map(p=>`<option value="${p}" ${f.winner===p?'selected':''}>${p}</option>`).join('');
+
+  const formHtml = (!isBye&&!isTbd) ? `
+    <div class="result-form" id="form-${f.id}">
+      <div class="rf-title">${homeDisplay} vs ${awayDisplay}${isPlayoff?' — '+f.label:''}</div>
+      <div class="rf-grid">
+        <div class="rf-field full">
+          <label class="rf-label">Winner</label>
+          <select class="rf-select" id="rf-winner-${f.id}">
+            <option value="">— Select winner —</option>
+            ${playerOptions}
+          </select>
+        </div>
+        ${scoreFields}
+        <div class="rf-field">
+          <label class="rf-label">Checkout</label>
+          <input class="rf-input" type="number" id="rf-checkout-${f.id}" min="1" max="170" placeholder="e.g. 32" value="${f.checkout||''}">
+        </div>
+        <div class="rf-field">
+          <label class="rf-label">Date played</label>
+          <input class="rf-input" type="text" id="rf-date-${f.id}" placeholder="e.g. Mon 23 Jun" value="${f.date||''}">
+        </div>
+        <div class="rf-field">
+          <label class="rf-label">Avg — ${homeDisplay}</label>
+          <input class="rf-input" type="number" id="rf-havg-${f.id}" step="0.01" placeholder="0.00" value="${f.homeAvg||''}">
+        </div>
+        <div class="rf-field">
+          <label class="rf-label">Avg — ${awayDisplay}</label>
+          <input class="rf-input" type="number" id="rf-aavg-${f.id}" step="0.01" placeholder="0.00" value="${f.awayAvg||''}">
+        </div>
+        <div class="rf-field">
+          <label class="rf-label">Referee</label>
+          <input class="rf-input" type="text" id="rf-referee-${f.id}" list="referee-names" placeholder="e.g. Ollie" value="${escapeHtml(f.referee||'')}">
+        </div>
+        <div class="rf-field">
+          <label class="rf-label">Ref Rating</label>
+          ${buildStarPicker(f.id, f.refRating)}
+        </div>
+        <div class="rf-field full">
+          <label class="rf-label">Ref Review</label>
+          <textarea class="rf-textarea" id="rf-review-${f.id}" placeholder="How did they referee the match?">${escapeHtml(f.refReview||'')}</textarea>
+        </div>
+      </div>
+      <div class="rf-actions">
+        <button class="rf-save" onclick="saveResultForm('${f.id}',${isPlayoff})">Save Result</button>
+        <button class="rf-cancel" onclick="closeForm('${f.id}')">Cancel</button>
+        ${played?`<button class="rf-clear" onclick="clearResult('${f.id}')">Clear</button>`:''}
+      </div>
+    </div>` : '';
+
+  const homeAv = (played&&f.home&&f.home!=='BYE'&&f.homeAvg)?`<div class="player-avg">${Number(f.homeAvg).toFixed(2)}</div>`:'';
+  const awayAv = (played&&f.away&&f.away!=='BYE'&&f.awayAvg)?`<div class="player-avg">${Number(f.awayAvg).toFixed(2)}</div>`:'';
+
+  const hasRefInfo = played && (f.referee || f.refRating || f.refReview);
+  const refInfoHtml = hasRefInfo ? `
+    <div class="ref-info">
+      ${f.referee?`<span class="ref-name">🎯 Ref: ${escapeHtml(f.referee)}</span>`:''}
+      ${f.refRating?buildStarDisplay(f.refRating):''}
+      ${f.refReview?`<div class="ref-review">"${escapeHtml(f.refReview)}"</div>`:''}
+    </div>` : '';
+
+  return `
+    <div class="fixture-wrap">
+      <div class="${fixCls}" ${clickAttr}>
+        <div class="player home">
+          ${(f.home&&f.home!=='BYE')?avatarHtml(f.home):''}
+          <div><div class="${homeNameCls}">${homeDisplay}</div>${homeAv}</div>
+        </div>
+        ${centerHtml}
+        <div class="player away">
+          ${(f.away&&f.away!=='BYE')?avatarHtml(f.away):''}
+          <div style="text-align:right"><div class="${awayNameCls}">${awayDisplay}</div>${awayAv}</div>
+        </div>
+      </div>
+      ${refInfoHtml}
+      ${formHtml}
+    </div>`;
+}
+
+// ─── RENDER FIXTURES ─────────────────────────────────────────────────────────
+function renderFixtures(weekFilter) {
+  currentWeekFilter = weekFilter;
+  const container = document.getElementById('fixtures-list');
+  container.innerHTML = '';
+
+  const showLeague = weekFilter==='all' || (weekFilter!=='playoffs' && !isNaN(weekFilter));
+  const showPlayoffs = weekFilter==='all' || weekFilter==='playoffs';
+
+  // League weeks
+  if(showLeague){
+    const weeks = weekFilter==='all'?[1,2,3,4,5,6,7,8,9,10,11]:[weekFilter];
+    const fixtures = getFixtures();
+    weeks.forEach(w=>{
+      const wf=fixtures.filter(f=>f.week===w);
+      const block=document.createElement('div');
+      block.className='week-block';
+      block.innerHTML=`<div class="week-header">Week ${w}</div>`;
+      wf.forEach(f=>{ block.innerHTML+=buildFixtureCard(f,false); });
+      container.appendChild(block);
+    });
+  }
+
+  // Playoff rounds
+  if(showPlayoffs){
+    const poFixtures=getPlayoffFixtures();
+    const rounds=[
+      {key:'QF', label:'Quarter Finals', ids:['qf-1','qf-2','qf-3']},
+      {key:'SF', label:'Semi Finals',    ids:['sf-1','sf-2']},
+      {key:'3RD',label:'3rd Place Play-off', ids:['3rd']},
+      {key:'F',  label:'Final 🏆',       ids:['final']},
+      {key:'ES', label:'⚔️ El Shitico',  ids:['elshitico']},
+    ];
+    rounds.forEach(r=>{
+      const block=document.createElement('div');
+      block.className='week-block';
+      block.innerHTML=`<div class="week-header playoff-header">${r.label}</div>`;
+      r.ids.forEach(id=>{
+        const f=poFixtures.find(x=>x.id===id);
+        if(f) block.innerHTML+=buildFixtureCard(f,true);
+      });
+      container.appendChild(block);
+    });
+  }
+
+  // Reopen form if needed
+  if(openFormId){
+    const el=document.getElementById('form-'+openFormId);
+    if(el)el.classList.add('open');
+  }
+}
+
+// ─── RENDER TABLE ────────────────────────────────────────────────────────────
+function renderTable(){
+  const standings=computeStandings();
+  const tbody=document.getElementById('table-body');
+  tbody.innerHTML='';
+  standings.forEach((p,i)=>{
+    const pos=i+1;
+    let zoneClass,rankColor;
+    if(pos===1){zoneClass='zone-gold';rankColor='#ffd700';}
+    else if(pos<=7){zoneClass='zone-green';rankColor='#22c55e';}
+    else if(pos<=9){zoneClass='zone-pink';rankColor='#ec4899';}
+    else{zoneClass='zone-brown';rankColor='#a16e3c';}
+    tbody.innerHTML+=`
+      <tr class="${zoneClass}">
+        <td class="rank-cell" style="color:${rankColor}">${pos}</td>
+        <td><div class="team-cell">${avatarHtml(p.name)}<span>${p.name}</span></div></td>
+        <td class="num">${p.p}</td><td class="num">${p.w}</td><td class="num">${p.l}</td>
+        <td class="num pts-cell">${p.pts}</td>
+        <td class="num avg-cell">${p.avg>0?p.avg.toFixed(2):'—'}</td>
+        <td class="num">${p.ck||'—'}</td>
+        <td class="num">${p.ckTotal||'—'}</td>
+        <td>${playerForm(p.name)}</td>
+      </tr>`;
+  });
+}
+
+// ─── RENDER PLAYERS ───────────────────────────────────────────────────────────
+function renderPlayers(){
+  const standings=computeStandings();
+  const grid=document.getElementById('player-grid');
+  const detailEl=document.getElementById('player-detail');
+  const currentPlayer=detailEl.dataset.player;
+  grid.innerHTML='';
+  standings.forEach(p=>{
+    const color=COLORS[p.name]||'#888';
+    const card=document.createElement('div');
+    card.className='player-card'+(p.name===currentPlayer?' selected':'');
+    card.innerHTML=`
+      <div class="pc-avatar" style="background:${color}">${initials(p.name)}</div>
+      <div class="pc-name">${p.name}</div>
+      <div class="pc-pts">${p.pts} <span style="font-size:14px;color:var(--muted);font-family:Inter">pts</span></div>
+      <div class="pc-stat">P${p.p} W${p.w} L${p.l}</div>
+      <div class="pc-stat">Avg: ${p.avg>0?p.avg.toFixed(2):'—'}</div>`;
+    card.onclick=()=>showPlayerDetail(p.name,card);
+    grid.appendChild(card);
+  });
+  if(currentPlayer) showPlayerDetail(currentPlayer,null);
+}
+
+function showPlayerDetail(name,cardEl){
+  if(cardEl){document.querySelectorAll('.player-card').forEach(c=>c.classList.remove('selected'));cardEl.classList.add('selected');}
+  const detail=document.getElementById('player-detail');
+  detail.dataset.player=name;
+  const color=COLORS[name]||'#888';
+  const fixtures=getFixtures();
+  const playerFixtures=fixtures.filter(f=>(f.home===name||f.away===name)&&f.home!=='BYE'&&f.away!=='BYE');
+  const stats=computeStandings().find(s=>s.name===name)||{};
+  const fixtureRows=playerFixtures.map(f=>{
+    const isHome=f.home===name;
+    const opponent=isHome?f.away:f.home;
+    let result='TBD',resultCls='TBD';
+    if(f.winner===name){result='W';resultCls='W';}
+    else if(f.winner&&f.winner!==name){result='L';resultCls='L';}
+    const myAvg=isHome?f.homeAvg:f.awayAvg;
+    return `<div class="pd-fixture">
+      <div class="pd-week">WK ${f.week}</div>
+      <span class="result-badge ${resultCls}">${result}</span>
+      <div style="flex:1">vs <strong>${opponent}</strong>${f.date?` <span style="color:var(--muted);font-size:11px">· ${f.date}</span>`:''}</div>
+      ${myAvg?`<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent2)">${Number(myAvg).toFixed(2)}</div>`:''}
+    </div>`;
+  }).join('');
+  detail.innerHTML=`
+    <div class="pd-header">
+      <div style="background:${color};width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:24px;color:#000;flex-shrink:0">${initials(name)}</div>
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px">${name}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)">${stats.p||0} played &nbsp;·&nbsp; ${stats.w||0}W ${stats.l||0}L &nbsp;·&nbsp; ${stats.pts||0} pts &nbsp;·&nbsp; Avg ${stats.avg>0?stats.avg.toFixed(2):'—'}</div>
+      </div>
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase">All Fixtures</div>
+    <div class="pd-fixtures">${fixtureRows}</div>`;
+  detail.dataset.player=name;
+  detail.classList.add('visible');
+  detail.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+// ─── RENDER PLAYOFF BRACKET ───────────────────────────────────────────────────
+function renderPlayoffs(){
+  const pf=getPlayoffFixtures();
+
+  function getF(id){return pf.find(f=>f.id===id);}
+
+  function poCard(name, seedLabel, extra=''){
+    if(!name) return `<div class="po-card tbd"><span class="po-seed">${seedLabel}</span><span>TBD</span></div>`;
+    const c=COLORS[name]||'#888';
+    return `<div class="po-card ${extra}">
+      <span class="po-seed">${seedLabel}</span>
+      <div class="po-av" style="background:${c}">${initials(name)}</div>
+      <span>${name}</span>
+    </div>`;
+  }
+
+  function matchResult(id){
+    const r=dbResults[id];
+    const f=getF(id);
+    if(!r||!f) return '';
+    return `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-align:center;padding:2px 0">${r.home_score}–${r.away_score} · <span style="color:var(--win)">${r.winner} wins</span></div>`;
+  }
+
+  function matchup(id, p1Label, p2Label, p1Name, p2Name, extraP1=''){
+    return `<div style="display:flex;flex-direction:column;gap:3px;margin-bottom:4px">
+      ${poCard(p1Name, p1Label, extraP1)}
+      <div class="po-vs">vs${extraP1?' <span style="color:var(--accent);font-size:9px">(bye)</span>':''}</div>
+      ${poCard(p2Name, p2Label)}
+      ${matchResult(id)}
+    </div>`;
+  }
+
+  const qf1=getF('qf-1'), qf2=getF('qf-2'), qf3=getF('qf-3');
+  const sf1=getF('sf-1'), sf2=getF('sf-2');
+  const f3rd=getF('3rd'), ffinal=getF('final');
+  const es=getF('elshitico');
+  const champion=dbResults['final']?dbResults['final'].winner:null;
+  const s3winner=dbResults['3rd']?dbResults['3rd'].winner:null;
+  const esWinner=dbResults['elshitico']?dbResults['elshitico'].winner:null;
+
+  const arrow = `<div style="display:flex;align-items:center;justify-content:center;width:44px;flex-shrink:0"><span style="color:var(--border);font-size:20px">→</span></div>`;
+
+  document.getElementById('playoff-bracket').innerHTML=`
+    <div style="overflow-x:auto;padding-bottom:16px">
+    <div style="min-width:820px">
+
+      ${champion?`<div style="text-align:center;margin-bottom:28px;padding:20px;background:rgba(245,166,35,0.1);border:2px solid var(--accent);border-radius:8px">
+        <div style="font-size:36px;margin-bottom:6px">🏆</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:3px;color:var(--accent)">${champion}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">Season 3 Champion</div>
+      </div>`:''}
+
+      <!-- Stage title headers -->
+      <div style="display:flex;margin-bottom:8px">
+        <div class="stage-title" style="width:210px">Quarter Finals</div>
+        <div style="width:44px"></div>
+        <div class="stage-title" style="width:210px">Semi Finals</div>
+        <div style="width:44px"></div>
+        <div class="stage-title" style="width:210px">Final 🏆</div>
+        <div style="width:44px"></div>
+        <div class="stage-title" style="width:210px">Champion</div>
+      </div>
+
+      <!-- Main bracket: flex row -->
+      <div style="display:flex;align-items:flex-start">
+
+        <!-- COL 1: Quarter Finals (all 3 stacked) -->
+        <div style="width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:16px">
+          ${matchup('qf-1','2nd','7th', qf1.home, qf1.away)}
+          ${matchup('qf-2','3rd','6th', qf2.home, qf2.away)}
+          ${matchup('qf-3','4th','5th', qf3.home, qf3.away)}
+        </div>
+
+        <!-- COL 2: arrows -->
+        <div style="width:44px;flex-shrink:0;display:flex;flex-direction:column;gap:16px">
+          <div style="height:42px;display:flex;align-items:center;justify-content:center"><span style="color:var(--border);font-size:20px">→</span></div>
+          <div style="height:42px;display:flex;align-items:center;justify-content:center;margin-top:42px"><span style="color:var(--border);font-size:20px">→</span></div>
+          <div style="height:42px;display:flex;align-items:center;justify-content:center;margin-top:42px"><span style="color:var(--border);font-size:20px">→</span></div>
+        </div>
+
+        <!-- COL 3: Semi Finals -->
+        <div style="width:210px;flex-shrink:0;display:flex;flex-direction:column;gap:16px">
+          <!-- SF1: 1st bye vs W-QF1 -->
+          ${matchup('sf-1','1st','W-QF1', sf1.home, sf1.away, 'bye-card')}
+          <!-- SF2: W-QF2 vs W-QF3 (pushed down to vertically align with QF2/QF3) -->
+          <div style="margin-top:42px">
+            ${matchup('sf-2','W-QF2','W-QF3', sf2.home, sf2.away)}
+          </div>
+        </div>
+
+        <!-- COL 4: arrows -->
+        <div style="width:44px;flex-shrink:0;display:flex;flex-direction:column">
+          <div style="height:42px;display:flex;align-items:center;justify-content:center"><span style="color:var(--border);font-size:20px">→</span></div>
+          <div style="height:42px;display:flex;align-items:center;justify-content:center;margin-top:120px"><span style="color:var(--border);font-size:20px">→</span></div>
+        </div>
+
+        <!-- COL 5: Final -->
+        <div style="width:210px;flex-shrink:0;margin-top:60px">
+          ${matchup('final','W-SF1','W-SF2', ffinal.home, ffinal.away)}
+        </div>
+
+        <!-- COL 6: arrow -->
+        <div style="width:44px;flex-shrink:0;height:42px;display:flex;align-items:center;justify-content:center;margin-top:60px">
+          <span style="color:var(--border);font-size:20px">→</span>
+        </div>
+
+        <!-- COL 7: Champion -->
+        <div style="width:210px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;margin-top:48px">
+          <div style="font-size:28px;margin-bottom:8px">🏆</div>
+          ${champion ? poCard(champion,'') : `<div class="po-card tbd" style="justify-content:center;width:100%">CHAMPION</div>`}
+        </div>
+
+      </div>
+
+      <!-- 3rd place -->
+      <div style="margin-top:24px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:6px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:var(--muted);margin-bottom:8px">🥉 3rd Place Play-off</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          ${poCard(f3rd.home,'L-SF1')}
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">vs</div>
+          ${poCard(f3rd.away,'L-SF2')}
+          ${s3winner?`<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--win);margin-left:8px">🥉 ${s3winner}</div>`:''}
+        </div>
+        ${matchResult('3rd')}
+      </div>
+
+    </div>
+    </div>
+
+    <!-- El Shitico -->
+    <div class="elshitico-wrap">
+      <div class="elshitico-title">⚔️ El Shitico</div>
+      <div style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:12px;letter-spacing:0.5px">10th vs 11th — Battle to avoid the wooden spoon</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        ${poCard(es.home,'10th')}
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#a16e3c">VS</div>
+        ${poCard(es.away,'11th')}
+        ${esWinner?`<div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a16e3c;margin-left:8px">Winner: ${esWinner}</div>`:''}
+      </div>
+      ${matchResult('elshitico')}
+    </div>
+  `;
+}
+
+// ─── RENDER SEASON STATS ──────────────────────────────────────────────────────
+function renderSeasonStats() {
+  const standings = computeStandings();
+
+  // Find leaders
+  const byAvg     = [...standings].filter(p=>p.avg>0).sort((a,b)=>b.avg-a.avg);
+  const byCkTotal = [...standings].filter(p=>p.ckTotal>0).sort((a,b)=>b.ckTotal-a.ckTotal);
+  const byCkCount = [...standings].filter(p=>p.ck>0).sort((a,b)=>b.ck-a.ck);
+  const byHighCk  = [...standings].filter(p=>p.highCk>0).sort((a,b)=>b.highCk-a.highCk);
+
+  const maxAvg     = byAvg[0]?.avg || 1;
+  const maxCkTotal = byCkTotal[0]?.ckTotal || 1;
+  const maxCkCount = byCkCount[0]?.ck || 1;
+  const maxHighCk  = byHighCk[0]?.highCk || 1;
+
+  function statCard(label, value, player, emoji) {
+    const color = COLORS[player] || '#888';
+    return `<div class="stats-card">
+      <div class="stats-card-label">${emoji} ${label}</div>
+      <div class="stats-card-value">${value}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:12px;color:#000">${initials(player)}</div>
+        <div class="stats-card-player">${player}</div>
+      </div>
+    </div>`;
+  }
+
+  function barRow(p, value, max, colorKey, isBest) {
+    const color = COLORS[p.name] || '#888';
+    const pct = Math.round((value/max)*100);
+    return `<div class="stats-bar-wrap">
+      <div class="stats-bar" style="width:${pct}%;background:${color};opacity:0.7"></div>
+      <div class="stats-val ${isBest?'stats-best':''}">${value||'—'}</div>
+    </div>`;
+  }
+
+  const tableRows = standings.map(p => {
+    const isBestAvg     = byAvg[0]?.name === p.name;
+    const isBestCkTotal = byCkTotal[0]?.name === p.name;
+    const isBestCkCount = byCkCount[0]?.name === p.name;
+    const isBestHighCk  = byHighCk[0]?.name === p.name;
+    const color = COLORS[p.name] || '#888';
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:8px;font-weight:600">
+        <div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:12px;color:#000">${initials(p.name)}</div>
+        ${p.name}
+      </div></td>
+      <td class="num">${barRow(p, p.ck, maxCkCount, 'ck', isBestCkCount)}</td>
+      <td class="num">${barRow(p, p.ckTotal, maxCkTotal, 'ckTotal', isBestCkTotal)}</td>
+      <td class="num">${barRow(p, p.highCk, maxHighCk, 'highCk', isBestHighCk)}</td>
+      <td class="num">${barRow(p, p.avg>0?p.avg.toFixed(2):0, maxAvg, 'avg', isBestAvg)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('stats-content').innerHTML = `
+    <div class="stats-section-title">Season Leaders</div>
+    <div class="stats-cards">
+      ${byAvg[0]     ? statCard('Highest Average',    byAvg[0].avg.toFixed(2),      byAvg[0].name,     '📊') : ''}
+      ${byCkTotal[0] ? statCard('Checkout Total',     byCkTotal[0].ckTotal,          byCkTotal[0].name, '🎯') : ''}
+      ${byCkCount[0] ? statCard('Most Checkouts',     byCkCount[0].ck,               byCkCount[0].name, '✅') : ''}
+      ${byHighCk[0]  ? statCard('Highest Checkout',   byHighCk[0].highCk,            byHighCk[0].name,  '🏹') : ''}
+    </div>
+
+    <div class="stats-section-title">Full Breakdown</div>
+    <div class="stats-table-wrap">
+      <table class="stats-table">
+        <thead><tr>
+          <th>Player</th>
+          <th class="num">Ck Count</th>
+          <th class="num">Ck Total</th>
+          <th class="num">Hi Checkout</th>
+          <th class="num">Season Avg</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ─── RENDER HALL OF FAME ──────────────────────────────────────────────────────
+function renderHallOfFame() {
+  // Pull current season's champion from live playoff data if available
+  const currentChampion = dbResults['final'] ? dbResults['final'].winner : null;
+  const currentPOChampion = currentChampion;
+  const elshiticoLoser = (() => {
+    const r = dbResults['elshitico'];
+    if (!r) return null;
+    const pf = getPlayoffFixtures().find(f=>f.id==='elshitico');
+    if (!pf) return null;
+    return r.winner === pf.home ? pf.away : pf.home;
+  })();
+
+  const HOF_DATA = [
+    {
+      season: '2025 Season',
+      awards: [
+        { trophy:'🏆', award:'League Winner Season 1', player:'Adam', champion:true },
+        { trophy:'🎄', award:'Christmas Cup 2025',     player:'Ste',  champion:false },
+      ]
+    },
+    {
+      season: '2026 Season',
+      awards: [
+        { trophy:'💑', award:'Couples Cup 2025',                   player:'Adam & Max', champion:false },
+        { trophy:'🏆', award:'League Winner Season 2',             player:'Ollie',      champion:true },
+        { trophy:'🎯', award:'Premiership of Darts S2 Champion',   player:'Ollie',      champion:true },
+        { trophy:'💩', award:'El Shitico Loser',                   player:'Ant',        champion:false },
+        { trophy:'⚔️', award:'Sanctus Victor 2026',               player:'TBD',        champion:false },
+        { trophy:'☀️', award:'Summer Bash 2026',                   player:'TBD',        champion:false },
+        { trophy:'🎃', award:'Halloween Haunt 2026',               player:'TBD',        champion:false },
+        { trophy:'🎄', award:'Christmas Cup 2026',                 player:'TBD',        champion:false },
+      ]
+    },
+    {
+      season: 'Season 3 — Current',
+      awards: [
+        { trophy:'🏆', award:'League Winner Season 3',             player: null,        champion:true,  live:true,  liveValue: null },
+        { trophy:'🎯', award:'Premiership of Darts S3 Champion',   player: currentPOChampion, champion:true, live:true },
+        { trophy:'💩', award:'El Shitico Loser',                   player: elshiticoLoser, champion:false, live:true },
+      ]
+    }
+  ];
+
+  // Tally trophy wins per player (excluding TBD and El Shitico loser)
+  const winCounts = {};
+  HOF_DATA.forEach(season => {
+    season.awards.forEach(a => {
+      if (!a.player || a.player === 'TBD' || a.award.toLowerCase().includes('loser')) return;
+      // Handle pairs like "Adam & Max"
+      a.player.split(/[&,]/).map(p=>p.trim()).forEach(p => {
+        if (p && p !== 'TBD') winCounts[p] = (winCounts[p]||0) + 1;
+      });
+    });
+  });
+  const topWinners = Object.entries(winCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxWins = topWinners[0]?.[1] || 1;
+
+  function hofCard(award) {
+    const isTbd = !award.player || award.player === 'TBD';
+    const isLiveEmpty = award.live && !award.player;
+    const displayPlayer = award.player || 'TBD';
+    const color = COLORS[award.player] || (COLORS[award.player?.split(' ')[0]] || '#888');
+
+    let avatarHtml = '';
+    if (!isTbd && !isLiveEmpty && COLORS[award.player]) {
+      avatarHtml = `<div class="hof-avatar" style="background:${color}">${initials(award.player)}</div>`;
+    } else if (!isTbd && !isLiveEmpty) {
+      // pairs or unknown
+      avatarHtml = `<div class="hof-avatar" style="background:var(--border);font-size:16px">👥</div>`;
+    } else {
+      avatarHtml = `<div class="hof-avatar" style="background:var(--border);font-size:22px">?</div>`;
+    }
+
+    return `<div class="hof-card ${award.champion&&!isTbd&&!isLiveEmpty?'champion':''} ${isTbd||isLiveEmpty?'tbd':''}">
+      <div class="hof-trophy">${award.trophy}</div>
+      ${avatarHtml}
+      <div class="hof-award">${award.award}</div>
+      <div class="hof-player ${isTbd||isLiveEmpty?'tbd-player':''}">${isLiveEmpty?'In progress…':displayPlayer}</div>
+    </div>`;
+  }
+
+  const seasonsHtml = HOF_DATA.map(season => `
+    <div class="hof-season">
+      <div class="hof-season-title">${season.season}</div>
+      <div class="hof-season-divider"></div>
+      <div class="hof-grid">
+        ${season.awards.map(a => hofCard(a)).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  const winsBarHtml = topWinners.length ? `
+    <div class="hof-wins-bar">
+      <div class="hof-wins-title">🏅 Most Trophy Wins</div>
+      ${topWinners.map(([name, count]) => {
+        const c = COLORS[name] || '#888';
+        const pct = Math.round((count/maxWins)*100);
+        return `<div class="hof-win-row">
+          <div class="hof-win-name">${name}</div>
+          <div style="flex:1"><div class="hof-win-bar" style="width:${pct}%;background:${c}"></div></div>
+          <div class="hof-win-count">${count} 🏆</div>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  document.getElementById('hof-content').innerHTML = seasonsHtml + winsBarHtml;
+}
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('theme-toggle').textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('sl_theme', isLight ? 'light' : 'dark');
+}
+
+function applyTheme() {
+  const saved = localStorage.getItem('sl_theme');
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = '☀️';
+  }
+}
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+function showSection(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+function filterWeek(w,btn){
+  document.querySelectorAll('.week-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderFixtures(w);
+}
+function renderAll(){
+  renderFixtures(currentWeekFilter);
+  renderTable();
+  renderPlayers();
+  renderPlayoffs();
+  renderHallOfFame();
+  renderSeasonStats();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+(async()=>{
+  applyTheme();
+  document.getElementById('referee-names').innerHTML = PLAYERS.map(p=>`<option value="${p}">`).join('');
+  try{
+    dbResults=await loadAllResults();
+    await seedIfNeeded();
+  }catch(e){
+    console.error('Failed to load from Supabase:',e);
+    showToast('Could not connect to database','error');
+  }
+  document.getElementById('loading').classList.add('hidden');
+  renderAll();
+})();
 </script>
+
+<footer>
+  <a class="shop-link" href="https://www.target-darts.co.uk/" target="_blank" rel="noopener">
+    <span class="shop-link-icon">🎯</span>
+    <div>
+      <div>Target Darts</div>
+      <div class="shop-link-label">Shop darts equipment</div>
+    </div>
+  </a>
+  <a class="shop-link" href="https://premierdarts.co.uk/" target="_blank" rel="noopener">
+    <span class="shop-link-icon">🎯</span>
+    <div>
+      <div>Premier Darts</div>
+      <div class="shop-link-label">Shop darts equipment</div>
+    </div>
+  </a>
+</footer>
+
 </body>
 </html>

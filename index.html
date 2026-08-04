@@ -157,6 +157,10 @@
   tbody tr:hover { background: var(--card); }
   td { padding: 11px 14px; vertical-align: middle; }
   .rank-cell { font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--muted); width: 36px; }
+  .move { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: 0; margin-left: 2px; vertical-align: middle; }
+  .move.move-up { color: var(--win); }
+  .move.move-down { color: var(--lose); }
+  .move.move-flat { color: var(--muted); font-size: 11px; }
   .team-cell { display: flex; align-items: center; gap: 10px; font-weight: 600; }
   .pts-cell { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--accent); }
   .avg-cell { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent2); }
@@ -595,8 +599,8 @@ async function seedIfNeeded() {
 }
 
 // ─── STANDINGS ────────────────────────────────────────────────────────────────
-function computeStandings() {
-  const fixtures = getFixtures();
+function computeStandings(maxWeek) {
+  const fixtures = getFixtures().filter(f => maxWeek==null || f.week<=maxWeek);
   const stats = {};
   PLAYERS.forEach(p => { stats[p] = {name:p,p:0,w:0,l:0,d:0,pts:0,avgSum:0,avgCount:0,ck:0,ckTotal:0,highCk:0}; });
   fixtures.forEach(f => {
@@ -989,8 +993,27 @@ function renderFixtures(weekFilter) {
 }
 
 // ─── RENDER TABLE ────────────────────────────────────────────────────────────
+function moveArrow(delta, betterWhenHigher){
+  if(!delta) return '<span class="move move-flat">–</span>';
+  const improved = betterWhenHigher ? delta>0 : delta<0;
+  const cls = improved ? 'move-up' : 'move-down';
+  const arrow = improved ? '▲' : '▼';
+  const mag = Math.abs(delta) < 1 ? Math.abs(delta).toFixed(2) : Math.round(Math.abs(delta));
+  return `<span class="move ${cls}">${arrow}${mag}</span>`;
+}
 function renderTable(){
   const standings=computeStandings();
+
+  // Movement vs. "the table before this week's games" — the latest week with
+  // any result decides the cutoff, so this naturally shows the swing caused
+  // by whatever's just been played.
+  const playedWeeks = getFixtures().filter(f=>f.winner||f.isDraw).map(f=>f.week);
+  const latestWeek = playedWeeks.length ? Math.max(...playedWeeks) : 0;
+  const prevStandings = latestWeek>1 ? computeStandings(latestWeek-1) : [];
+  const prevPos = {}, prevAvg = {};
+  prevStandings.forEach((p,i)=>{ prevPos[p.name]=i+1; prevAvg[p.name]=p.avg; });
+  const havePrev = prevStandings.length>0;
+
   const tbody=document.getElementById('table-body');
   tbody.innerHTML='';
   standings.forEach((p,i)=>{
@@ -1000,14 +1023,18 @@ function renderTable(){
     else if(pos<=7){zoneClass='zone-green';rankColor='#22c55e';}
     else if(pos<=9){zoneClass='zone-pink';rankColor='#ec4899';}
     else{zoneClass='zone-brown';rankColor='#a16e3c';}
+
+    const posMove = (havePrev && prevPos[p.name]!=null) ? moveArrow(prevPos[p.name]-pos, true) : '';
+    const avgMove = (havePrev && p.avg>0 && prevAvg[p.name]!=null && prevAvg[p.name]>0) ? moveArrow(p.avg-prevAvg[p.name], true) : '';
+
     tbody.innerHTML+=`
       <tr class="${zoneClass}">
-        <td class="rank-cell" style="color:${rankColor}">${pos}</td>
+        <td class="rank-cell" style="color:${rankColor}">${pos} ${posMove}</td>
         <td><div class="team-cell">${avatarHtml(p.name)}<span>${p.name}</span></div></td>
         <td class="num">${p.p}</td><td class="num">${p.w}</td><td class="num">${p.l}</td>
         <td class="num">${p.d||0}</td>
         <td class="num pts-cell">${p.pts}</td>
-        <td class="num avg-cell">${p.avg>0?p.avg.toFixed(2):'—'}</td>
+        <td class="num avg-cell">${p.avg>0?p.avg.toFixed(2):'—'} ${avgMove}</td>
         <td class="num">${p.ck||'—'}</td>
         <td class="num">${p.ckTotal||'—'}</td>
         <td>${playerForm(p.name)}</td>

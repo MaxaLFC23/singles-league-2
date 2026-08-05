@@ -432,7 +432,7 @@ async function loadAllResults() {
 async function upsertResult(id, data) {
   await dbFetch('results', {
     method:'POST', headers:{'Prefer':'resolution=merge-duplicates'},
-    body: JSON.stringify({ fixture_id:id, winner:data.winner, home_score:data.homeScore, away_score:data.awayScore, checkout:data.checkout||null, home_avg:data.homeAvg||null, away_avg:data.awayAvg||null, date_played:data.date||null, referee:data.referee||null, ref_rating:data.refRating||null, ref_review:data.refReview||null, updated_at:new Date().toISOString() })
+    body: JSON.stringify({ fixture_id:id, winner:data.winner, home_score:data.homeScore, away_score:data.awayScore, checkout:data.checkout||null, home_avg:data.homeAvg||null, away_avg:data.awayAvg||null, date_played:data.date||null, referee:data.referee||null, ref_rating:data.refRating||null, ref_review:data.refReview||null, updated_at:data.updatedAt })
   });
 }
 async function deleteResult(id) {
@@ -533,8 +533,8 @@ function getFixtures() {
   if (currentSeasonKey !== 's3') return SEASONS[currentSeasonKey].fixtures;
   return BASE_FIXTURES.map(f => {
     const r = dbResults[f.id];
-    return r ? {...f, winner:r.winner, homeScore:r.home_score, awayScore:r.away_score, checkout:r.checkout, homeAvg:r.home_avg, awayAvg:r.away_avg, date:r.date_played||'', referee:r.referee||'', refRating:r.ref_rating||0, refReview:r.ref_review||''}
-             : {...f, winner:null, homeScore:null, awayScore:null, checkout:null, homeAvg:null, awayAvg:null, date:'', referee:'', refRating:0, refReview:''};
+    return r ? {...f, winner:r.winner, homeScore:r.home_score, awayScore:r.away_score, checkout:r.checkout, homeAvg:r.home_avg, awayAvg:r.away_avg, date:r.date_played||'', referee:r.referee||'', refRating:r.ref_rating||0, refReview:r.ref_review||'', updatedAt:r.updated_at||null}
+             : {...f, winner:null, homeScore:null, awayScore:null, checkout:null, homeAvg:null, awayAvg:null, date:'', referee:'', refRating:0, refReview:'', updatedAt:null};
   });
 }
 
@@ -594,16 +594,17 @@ async function seedIfNeeded() {
   for (const [id, data] of Object.entries(SEED_RESULTS)) {
     if (!dbResults[id]) {
       try {
-        await upsertResult(id, data);
-        dbResults[id] = { fixture_id:id, winner:data.winner, home_score:data.homeScore, away_score:data.awayScore, checkout:data.checkout, home_avg:data.homeAvg, away_avg:data.awayAvg, date_played:data.date };
+        const seedTime = new Date().toISOString();
+        await upsertResult(id, {...data, updatedAt:seedTime});
+        dbResults[id] = { fixture_id:id, winner:data.winner, home_score:data.homeScore, away_score:data.awayScore, checkout:data.checkout, home_avg:data.homeAvg, away_avg:data.awayAvg, date_played:data.date, updated_at:seedTime };
       } catch(e) { console.warn('Seed failed', id, e); }
     }
   }
 }
 
 // ─── STANDINGS ────────────────────────────────────────────────────────────────
-function computeStandings(maxWeek) {
-  const fixtures = getFixtures().filter(f => maxWeek==null || f.week<=maxWeek);
+function computeStandings(fixtureFilter) {
+  const fixtures = getFixtures().filter(f => !fixtureFilter || fixtureFilter(f));
   const stats = {};
   PLAYERS.forEach(p => { stats[p] = {name:p,p:0,w:0,l:0,d:0,pts:0,avgSum:0,avgCount:0,ck:0,ckTotal:0,highCk:0}; });
   fixtures.forEach(f => {
@@ -744,8 +745,9 @@ async function saveResultForm(id, isPlayoff=false) {
   const btn=document.querySelector(`#form-${id} .rf-save`);
   if(btn){btn.disabled=true;btn.textContent='Saving...';}
   try {
-    await upsertResult(id,{winner,homeScore,awayScore,checkout,homeAvg,awayAvg,date,referee,refRating,refReview});
-    dbResults[id]={fixture_id:id,winner,home_score:homeScore,away_score:awayScore,checkout,home_avg:homeAvg,away_avg:awayAvg,date_played:date,referee,ref_rating:refRating,ref_review:refReview};
+    const savedAt=new Date().toISOString();
+    await upsertResult(id,{winner,homeScore,awayScore,checkout,homeAvg,awayAvg,date,referee,refRating,refReview,updatedAt:savedAt});
+    dbResults[id]={fixture_id:id,winner,home_score:homeScore,away_score:awayScore,checkout,home_avg:homeAvg,away_avg:awayAvg,date_played:date,referee,ref_rating:refRating,ref_review:refReview,updated_at:savedAt};
     closeForm(id);
     showToast(`✓ ${winner} wins saved`);
     renderAll();
@@ -1006,13 +1008,33 @@ function moveArrow(delta, betterWhenHigher){
 }
 function renderTable(){
   const standings=computeStandings();
+  const fixtures=getFixtures();
+  const playedFixtures=fixtures.filter(f=>f.winner||f.isDraw);
 
-  // Movement vs. "the table before this week's games" — the latest week with
-  // any result decides the cutoff, so this naturally shows the swing caused
-  // by whatever's just been played.
-  const playedWeeks = getFixtures().filter(f=>f.winner||f.isDraw).map(f=>f.week);
-  const latestWeek = playedWeeks.length ? Math.max(...playedWeeks) : 0;
-  const prevStandings = latestWeek>1 ? computeStandings(latestWeek-1) : [];
+  // Movement vs. "the table before whatever's just been played."
+  //
+  // Live season: based on which result was actually SAVED most recently
+  // (by timestamp), not on week number — a week number is only "latest"
+  // by coincidence of what someone happened to enter last, and results
+  // don't always get entered in week order. Using save-time means the
+  // arrows always reflect the real last change, however it was entered.
+  //
+  // Historical (finished) seasons have no save timestamps to go on, so they
+  // fall back to "movement in the season's final week" — still a nice
+  // look-back at how each one finished.
+  let prevStandings=[];
+  if(currentSeasonKey==='s3'){
+    const withTimestamps=playedFixtures.filter(f=>f.updatedAt);
+    if(withTimestamps.length){
+      const latestTime=withTimestamps.reduce((max,f)=> f.updatedAt>max?f.updatedAt:max, withTimestamps[0].updatedAt);
+      const recentIds=new Set(withTimestamps.filter(f=>f.updatedAt===latestTime).map(f=>f.id));
+      prevStandings=computeStandings(f=>!recentIds.has(f.id));
+    }
+  } else {
+    const playedWeeks=playedFixtures.map(f=>f.week);
+    const latestWeek=playedWeeks.length?Math.max(...playedWeeks):0;
+    if(latestWeek>1) prevStandings=computeStandings(f=>f.week<=latestWeek-1);
+  }
   const prevPos = {}, prevAvg = {};
   prevStandings.forEach((p,i)=>{ prevPos[p.name]=i+1; prevAvg[p.name]=p.avg; });
   const havePrev = prevStandings.length>0;

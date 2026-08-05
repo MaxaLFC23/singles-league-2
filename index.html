@@ -41,6 +41,8 @@
   .season-select { background: var(--card); border: 1px solid var(--border); color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
   .season-select:hover { border-color: var(--accent); }
   .season-select:focus { outline: none; border-color: var(--accent); }
+  .cups-link { background: var(--card); border: 1px solid var(--border); color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; padding: 8px 12px; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
+  .cups-link:hover { border-color: var(--accent); color: var(--accent); }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
@@ -326,6 +328,7 @@
     <div class="header-sub" id="header-sub">Season 3 &nbsp;·&nbsp; 11 Players &nbsp;·&nbsp; 11 Weeks</div>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
+    <a class="cups-link" href="cups/index.html" title="Premiership of Darts — Cup Competitions">🏆 Cups</a>
     <select class="season-select" id="season-select" onchange="switchSeason(this.value)" title="Switch season">
       <option value="s1">Season 1</option>
       <option value="s2">Season 2</option>

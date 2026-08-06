@@ -164,6 +164,22 @@
   .move.move-down { color: var(--lose); }
   .move.move-flat { color: var(--muted); font-size: 11px; }
   .team-cell { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+
+  .pressure-btn { background: none; border: none; cursor: pointer; font-size: 14px; opacity: 0.35; margin-left: 4px; transition: opacity .15s, transform .15s; padding: 2px; }
+  .pressure-btn:hover { opacity: 1; transform: scale(1.2); }
+  .pressure-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 20px; padding: 3px 8px 3px 10px; font-size: 11px; font-family: 'Inter', sans-serif; color: var(--text); margin-top: 4px; margin-right: 4px; }
+  .pressure-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 11px; padding: 0 2px; line-height: 1; }
+  .pressure-remove:hover { color: var(--lose); }
+
+  .pressure-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; align-items: center; justify-content: center; }
+  .pressure-modal-overlay.show { display: flex; }
+  .pressure-modal { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; width: 90%; max-width: 340px; }
+  .pressure-modal h3 { margin: 0 0 16px; font-family: 'Oswald', 'Bebas Neue', sans-serif; font-size: 18px; color: var(--text); }
+  .pressure-modal-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-family: 'Inter', sans-serif; }
+  .pressure-modal-select { width: 100%; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px; margin-bottom: 18px; }
+  .pressure-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .pressure-modal-cancel { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 13px; }
+  .pressure-modal-confirm { background: var(--accent); border: none; color: #000; border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 700; }
   .pts-cell { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--accent); }
   .avg-cell { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent2); }
   .form-dots { display: flex; gap: 3px; }
@@ -426,15 +442,41 @@
 <div class="toast" id="toast"></div>
 <datalist id="referee-names"></datalist>
 
+<div class="pressure-modal-overlay" id="pressureModal">
+  <div class="pressure-modal">
+    <h3 id="pressureModalTitle">Apply pressure</h3>
+    <label class="pressure-modal-label" for="pressureFromSelect">Who's applying it?</label>
+    <select id="pressureFromSelect" class="pressure-modal-select"></select>
+    <div class="pressure-modal-actions">
+      <button class="pressure-modal-cancel" onclick="closePressureModal()">Cancel</button>
+      <button class="pressure-modal-confirm" onclick="confirmApplyPressure()">Apply Pressure 🔥</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://gtoozehjbvvowignlrzi.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0b296ZWhqYnZ2b3dpZ25scnppIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE2OTM4NDksImV4cCI6MjA5NzI2OTg0OX0.B-ZmxDFH73TUvFNIWvY4HwnjMuqZZ9lG1eOSrJrAyR8';
 
+// Separate project — Max's own (same one behind Chalkboard and the Cups app),
+// used only for the Pressure feature so it doesn't depend on Dan's access.
+const MAX_SUPABASE_URL = 'https://chtlhdjzadjemudgksxm.supabase.co';
+const MAX_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNodGxoZGp6YWRqZW11ZGdrc3htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MzczMzAsImV4cCI6MjA5OTExMzMzMH0.D1d1LyF91YSpGIs1mgNKT2PMu_C8glboJXXSSNlZl98';
+
 async function dbFetch(path, options={}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     ...options,
     headers: { 'apikey':SUPABASE_KEY, 'Authorization':`Bearer ${SUPABASE_KEY}`, 'Content-Type':'application/json', 'Prefer': options.prefer||'', ...(options.headers||{}) }
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const t = await res.text();
+  return t ? JSON.parse(t) : null;
+}
+async function maxDbFetch(path, options={}) {
+  const res = await fetch(`${MAX_SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: { 'apikey':MAX_SUPABASE_KEY, 'Authorization':`Bearer ${MAX_SUPABASE_KEY}`, 'Content-Type':'application/json', 'Prefer': options.prefer||'', ...(options.headers||{}) }
   });
   if (!res.ok) throw new Error(await res.text());
   const t = await res.text();
@@ -1024,6 +1066,82 @@ function moveArrow(delta, betterWhenHigher){
   const mag = Math.abs(delta) < 1 ? Math.abs(delta).toFixed(2) : Math.round(Math.abs(delta));
   return `<span class="move ${cls}">${arrow}${mag}</span>`;
 }
+// ─── APPLY PRESSURE ─────────────────────────────────────────────────────────
+// Fun, lightweight, entirely separate from results — anyone can apply
+// pressure on anyone, and anyone can remove it, same open trust model as
+// everything else on this site.
+let pressureEntries = [];
+
+const PRESSURE_PHRASES = [
+  "{from} applied pressure to {to}",
+  "{from} is gegenpressing {to}",
+  "{from} has {to} rattled",
+  "{from} is breathing down {to}'s neck",
+  "{from} smells blood — {to} better watch out",
+  "{from} is turning the screw on {to}",
+  "{from} has got inside {to}'s head",
+  "{from} is putting the squeeze on {to}",
+  "{from} senses weakness in {to}",
+  "{from} is closing in on {to}",
+  "{from} is stalking {to} up the table",
+  "{from} fancies a slice of {to}'s average",
+];
+function generatePressureMessage(from, to){
+  const template = PRESSURE_PHRASES[Math.floor(Math.random()*PRESSURE_PHRASES.length)];
+  return template.replace('{from}', from).replace('{to}', to);
+}
+
+async function loadPressure(){
+  try {
+    const rows = await maxDbFetch('pressure?select=*&order=created_at.desc');
+    pressureEntries = rows || [];
+  } catch(e) {
+    console.warn('Failed to load pressure', e);
+  }
+}
+async function applyPressure(fromPlayer, toPlayer){
+  if (currentSeasonKey !== 's3') { showToast('Past seasons are read-only','error'); return; }
+  const message = generatePressureMessage(fromPlayer, toPlayer);
+  const entry = { id: 'p'+Date.now()+Math.random().toString(36).slice(2,7), from_player:fromPlayer, to_player:toPlayer, message, created_at:new Date().toISOString() };
+  pressureEntries.unshift(entry);
+  renderTable();
+  try {
+    await maxDbFetch('pressure', { method:'POST', body: JSON.stringify(entry) });
+  } catch(e) {
+    console.warn('Failed to save pressure', e);
+    showToast('Could not save — check connection', 'error');
+  }
+}
+async function removePressure(id){
+  if (currentSeasonKey !== 's3') { showToast('Past seasons are read-only','error'); return; }
+  pressureEntries = pressureEntries.filter(p=>p.id!==id);
+  renderTable();
+  try {
+    await maxDbFetch(`pressure?id=eq.${id}`, { method:'DELETE' });
+  } catch(e) {
+    console.warn('Failed to remove pressure', e);
+    showToast('Could not remove — check connection', 'error');
+  }
+}
+function openPressureModal(toPlayer){
+  const modal = document.getElementById('pressureModal');
+  const select = document.getElementById('pressureFromSelect');
+  select.innerHTML = PLAYERS.filter(p=>p!==toPlayer).map(p=>`<option value="${p}">${p}</option>`).join('');
+  modal.dataset.target = toPlayer;
+  document.getElementById('pressureModalTitle').textContent = `Apply pressure on ${toPlayer}`;
+  modal.classList.add('show');
+}
+function closePressureModal(){
+  document.getElementById('pressureModal').classList.remove('show');
+}
+function confirmApplyPressure(){
+  const modal = document.getElementById('pressureModal');
+  const toPlayer = modal.dataset.target;
+  const fromPlayer = document.getElementById('pressureFromSelect').value;
+  closePressureModal();
+  applyPressure(fromPlayer, toPlayer);
+}
+
 function renderTable(){
   const standings=computeStandings();
   const fixtures=getFixtures();
@@ -1073,7 +1191,17 @@ function renderTable(){
     tbody.innerHTML+=`
       <tr class="${zoneClass}">
         <td class="rank-cell" style="color:${rankColor}">${pos} ${posMove}</td>
-        <td><div class="team-cell">${avatarHtml(p.name)}<span>${p.name}</span></div></td>
+        <td>
+          <div class="team-cell">
+            ${avatarHtml(p.name)}<span>${p.name}</span>
+            ${currentSeasonKey==='s3' ? `<button class="pressure-btn" onclick="openPressureModal('${p.name}')" title="Apply pressure on ${p.name}">🔥</button>` : ''}
+          </div>
+          ${currentSeasonKey==='s3' ? pressureEntries.filter(pr=>pr.to_player===p.name).map(pr=>`
+            <div class="pressure-badge">
+              <span>🔥 ${pr.message}</span>
+              <button class="pressure-remove" onclick="removePressure('${pr.id}')" title="Remove">✕</button>
+            </div>`).join('') : ''}
+        </td>
         <td class="num">${p.p}</td><td class="num">${p.w}</td><td class="num">${p.l}</td>
         <td class="num">${p.d||0}</td>
         <td class="num pts-cell">${p.pts}</td>
@@ -1622,8 +1750,14 @@ function renderAll(){
     console.error('Failed to load from Supabase:',e);
     showToast('Could not connect to database','error');
   }
+  await loadPressure();
   document.getElementById('loading').classList.add('hidden');
   renderAll();
+
+  // Pressure is meant to feel live — quiet refresh so everyone sees the same
+  // fires burning, without needing to touch the rest of the site's data.
+  setInterval(async()=>{ await loadPressure(); renderTable(); }, 20000);
+  window.addEventListener('focus', async()=>{ await loadPressure(); renderTable(); });
 })();
 </script>
 

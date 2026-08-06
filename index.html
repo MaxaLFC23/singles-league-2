@@ -305,9 +305,6 @@
   .ff-card.ff-left { opacity: 0.6; }
   .ff-photo-wrap .avatar { font-size: 24px; font-weight: 700; }
   .ff-name { font-family: 'Oswald', 'Bebas Neue', sans-serif; font-weight: 600; font-size: 17px; color: var(--text); letter-spacing: 0.5px; }
-  .ff-badges { display: flex; flex-direction: column; gap: 4px; }
-  .ff-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 0.3px; }
-  .ff-badge-empty { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
   .ff-left-badge { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted); font-style: italic; }
   .hof-avatar { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #000; }
 
@@ -1521,23 +1518,12 @@ const FOUNDING_FATHERS = [
   {name:'Ste'}, {name:'Dan'}, {name:'Ollie'}, {name:'Mohan'}, {name:'Cedric'}
 ];
 function renderFoundingFathers() {
-  const s = SEASON_1_SUMMARY;
-  function accoladesFor(name){
-    const badges=[];
-    if(s.leagueWinner===name) badges.push('🏆 Season 1 League Winner');
-    if(s.playoffChampion===name) badges.push('🎯 Season 1 Playoff Champion');
-    if(s.runnerUp===name) badges.push('🥈 Season 1 Runner-up');
-    if(s.elshiticoWinner===name) badges.push('💩 El Shitico Winner');
-    return badges;
-  }
   const cardsHtml = FOUNDING_FATHERS.map(ff=>{
     const color = SEASON_1_COLORS[ff.name]||'#888';
-    const badges = accoladesFor(ff.name);
     return `
       <div class="ff-card ${ff.left?'ff-left':''}">
         <div class="ff-photo-wrap">${avatarHtmlColored(ff.name,color,86)}</div>
         <div class="ff-name">${ff.name}</div>
-        ${badges.length ? `<div class="ff-badges">${badges.map(b=>`<div class="ff-badge">${b}</div>`).join('')}</div>` : (ff.left ? '' : '<div class="ff-badge-empty">Founding Father</div>')}
         ${ff.left ? `<div class="ff-left-badge">🕊️ ${ff.leftNote}</div>` : ''}
       </div>`;
   }).join('');

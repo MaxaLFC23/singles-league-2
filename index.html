@@ -294,6 +294,21 @@
   .hof-award { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
   .hof-player { font-weight: 700; font-size: 16px; color: var(--text); }
   .hof-player.tbd-player { color: var(--muted); font-style: italic; }
+
+  .ff-banner { background: linear-gradient(135deg, var(--accent), #b8841f); border-radius: 8px; padding: 24px 20px; text-align: center; margin-bottom: 24px; }
+  .ff-banner-title { font-family: 'Oswald', 'Bebas Neue', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 2px; color: #000; }
+  .ff-banner-sub { font-family: 'Inter', sans-serif; font-size: 13px; font-style: italic; color: rgba(0,0,0,0.65); margin-top: 4px; }
+  .ff-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .ff-grid { grid-template-columns: repeat(2, 1fr); } }
+  .ff-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 20px 12px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; transition: border-color .15s; }
+  .ff-card:hover { border-color: var(--accent); }
+  .ff-card.ff-left { opacity: 0.6; }
+  .ff-photo-wrap .avatar { font-size: 24px; font-weight: 700; }
+  .ff-name { font-family: 'Oswald', 'Bebas Neue', sans-serif; font-weight: 600; font-size: 17px; color: var(--text); letter-spacing: 0.5px; }
+  .ff-badges { display: flex; flex-direction: column; gap: 4px; }
+  .ff-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 0.3px; }
+  .ff-badge-empty { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .ff-left-badge { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted); font-style: italic; }
   .hof-avatar { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #000; }
 
   .hof-wins-bar { margin-top: 32px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 20px; }
@@ -345,6 +360,7 @@
   <button class="tab" onclick="showSection('players',this)">Players</button>
   <button class="tab" onclick="showSection('playoffs',this)">Playoffs</button>
   <button class="tab" onclick="showSection('halloffame',this)">Hall of Fame</button>
+  <button class="tab" onclick="showSection('foundingfathers',this)">🏆 Founding Fathers</button>
   <button class="tab" onclick="showSection('seasonstats',this)">Season Stats</button>
 </div>
 
@@ -399,6 +415,10 @@
 
   <div id="halloffame" class="section">
     <div id="hof-content"></div>
+  </div>
+
+  <div id="foundingfathers" class="section">
+    <div id="founding-fathers-content"></div>
   </div>
 
   <div id="seasonstats" class="section">
@@ -659,6 +679,7 @@ function computeStandings(fixtureFilter) {
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function initials(n){return n.slice(0,2).toUpperCase();}
 function avatarHtml(name,size=32){const c=COLORS[name]||'#888';return `<div class="avatar" style="width:${size}px;height:${size}px;background:${c}">${initials(name)}</div>`;}
+function avatarHtmlColored(name,color,size=32){return `<div class="avatar" style="width:${size}px;height:${size}px;background:${color||'#888'}">${initials(name)}</div>`;}
 function playerForm(name){
   const fixtures=getFixtures();
   const played=fixtures.filter(f=>(f.home===name||f.away===name)&&f.winner&&f.home!=='BYE'&&f.away!=='BYE');
@@ -1487,6 +1508,48 @@ function renderHallOfFame() {
   document.getElementById('hof-content').innerHTML = seasonsHtml + winsBarHtml;
 }
 
+// ─── FOUNDING FATHERS ───────────────────────────────────────────────────────
+// The 10 players who started it all in Season 1. Fixed, honorary content —
+// same regardless of which season is currently selected, same as Hall of Fame.
+//
+// No real photos yet — swap in a photo for anyone by replacing their
+// avatarHtmlColored(...) call below with an <img> tag, e.g.:
+//   <img src="founding-fathers/max.jpg" class="ff-photo" alt="Max">
+const FOUNDING_FATHERS = [
+  {name:'Max'}, {name:'Shaun'}, {name:'Adam'}, {name:'James'},
+  {name:'Mat', left:true, leftNote:'Left the league — February 2026'},
+  {name:'Ste'}, {name:'Dan'}, {name:'Ollie'}, {name:'Mohan'}, {name:'Cedric'}
+];
+function renderFoundingFathers() {
+  const s = SEASON_1_SUMMARY;
+  function accoladesFor(name){
+    const badges=[];
+    if(s.leagueWinner===name) badges.push('🏆 Season 1 League Winner');
+    if(s.playoffChampion===name) badges.push('🎯 Season 1 Playoff Champion');
+    if(s.runnerUp===name) badges.push('🥈 Season 1 Runner-up');
+    if(s.elshiticoWinner===name) badges.push('💩 El Shitico Winner');
+    return badges;
+  }
+  const cardsHtml = FOUNDING_FATHERS.map(ff=>{
+    const color = SEASON_1_COLORS[ff.name]||'#888';
+    const badges = accoladesFor(ff.name);
+    return `
+      <div class="ff-card ${ff.left?'ff-left':''}">
+        <div class="ff-photo-wrap">${avatarHtmlColored(ff.name,color,86)}</div>
+        <div class="ff-name">${ff.name}</div>
+        ${badges.length ? `<div class="ff-badges">${badges.map(b=>`<div class="ff-badge">${b}</div>`).join('')}</div>` : (ff.left ? '' : '<div class="ff-badge-empty">Founding Father</div>')}
+        ${ff.left ? `<div class="ff-left-badge">🕊️ ${ff.leftNote}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  document.getElementById('founding-fathers-content').innerHTML = `
+    <div class="ff-banner">
+      <div class="ff-banner-title">🏆 Founding Fathers 🏆</div>
+      <div class="ff-banner-sub">Singles Darts League — The Original Ten, Season 1</div>
+    </div>
+    <div class="ff-grid">${cardsHtml}</div>`;
+}
+
 // ─── THEME ────────────────────────────────────────────────────────────────────
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light');
@@ -1558,6 +1621,7 @@ function renderAll(){
   renderPlayers();
   renderPlayoffs();
   renderHallOfFame();
+  renderFoundingFathers();
   renderSeasonStats();
 }
 

@@ -180,6 +180,20 @@
   .pressure-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
   .pressure-modal-cancel { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 13px; }
   .pressure-modal-confirm { background: var(--accent); border: none; color: #000; border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 700; }
+
+  .mini-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; align-items: center; justify-content: center; }
+  .mini-modal-overlay.show { display: flex; }
+  .mini-modal { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; width: 90%; max-width: 340px; }
+  .mini-modal h3 { margin: 0 0 16px; font-family: 'Oswald', 'Bebas Neue', sans-serif; font-size: 18px; color: var(--text); }
+  .mini-modal-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-family: 'Inter', sans-serif; }
+  .mini-modal-input { width: 100%; padding: 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px; margin-bottom: 18px; font-family: inherit; }
+  .mini-modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+  .mini-modal-cancel { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 13px; }
+  .mini-modal-confirm { background: var(--accent); border: none; color: #000; border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 700; }
+
+  .date-btn { background: none; border: 1px dashed var(--border); color: var(--accent); font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; padding: 4px 10px; border-radius: 4px; cursor: pointer; margin-top: 4px; font-family: 'Inter', sans-serif; }
+  .date-btn:hover { border-color: var(--accent); background: rgba(245,166,35,0.08); }
+  .scheduled-date { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text); margin-top: 2px; }
   .pts-cell { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--accent); }
   .avg-cell { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent2); }
   .form-dots { display: flex; gap: 3px; }
@@ -454,6 +468,19 @@
   </div>
 </div>
 
+<div class="mini-modal-overlay" id="dateModal">
+  <div class="mini-modal">
+    <h3 id="dateModalTitle">Set proposed date</h3>
+    <label class="mini-modal-label" for="dateModalInput">Date</label>
+    <input type="date" id="dateModalInput" class="mini-modal-input">
+    <div class="mini-modal-actions">
+      <button class="mini-modal-cancel" id="dateModalClear" onclick="clearDateFromModal()" style="display:none">Remove date</button>
+      <button class="mini-modal-cancel" onclick="closeDateModal()">Cancel</button>
+      <button class="mini-modal-confirm" onclick="confirmSetDate()">Save Date 📅</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ─── SUPABASE ─────────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://gtoozehjbvvowignlrzi.supabase.co';
@@ -592,8 +619,9 @@ function getFixtures() {
   if (currentSeasonKey !== 's3') return SEASONS[currentSeasonKey].fixtures;
   return BASE_FIXTURES.map(f => {
     const r = dbResults[f.id];
-    return r ? {...f, winner:r.winner, homeScore:r.home_score, awayScore:r.away_score, checkout:r.checkout, homeAvg:r.home_avg, awayAvg:r.away_avg, date:r.date_played||'', referee:r.referee||'', refRating:r.ref_rating||0, refReview:r.ref_review||'', updatedAt:r.updated_at||null}
-             : {...f, winner:null, homeScore:null, awayScore:null, checkout:null, homeAvg:null, awayAvg:null, date:'', referee:'', refRating:0, refReview:'', updatedAt:null};
+    const scheduledDate = fixtureSchedule[f.id] || null;
+    return r ? {...f, winner:r.winner, homeScore:r.home_score, awayScore:r.away_score, checkout:r.checkout, homeAvg:r.home_avg, awayAvg:r.away_avg, date:r.date_played||'', referee:r.referee||'', refRating:r.ref_rating||0, refReview:r.ref_review||'', updatedAt:r.updated_at||null, scheduledDate}
+             : {...f, winner:null, homeScore:null, awayScore:null, checkout:null, homeAvg:null, awayAvg:null, date:'', referee:'', refRating:0, refReview:'', updatedAt:null, scheduledDate};
   });
 }
 
@@ -869,7 +897,8 @@ function buildFixtureCard(f, isPlayoff=false, readOnly=false) {
     centerHtml=`<div class="match-center">
       <div class="score pending">${readOnly?'Not played':'TBC'}</div>
       ${isPlayoff?'<span class="bo3-badge">BO3</span>':''}
-      ${f.date?`<div class="match-meta">${f.date}</div>`:''}
+      ${f.scheduledDate?`<div class="scheduled-date">📅 ${formatDateNice(f.scheduledDate)}</div>`:''}
+      ${readOnly?'':`<button class="date-btn" onclick="event.stopPropagation();openDateModal('${f.id}')">${f.scheduledDate?'Change date':'📅 Set date'}</button>`}
       ${readOnly?'':'<div class="enter-result-hint">+ Enter result</div>'}
     </div>`;
   }
@@ -1140,6 +1169,77 @@ function confirmApplyPressure(){
   const fromPlayer = document.getElementById('pressureFromSelect').value;
   closePressureModal();
   applyPressure(fromPlayer, toPlayer);
+}
+
+// ─── PROPOSED FIXTURE DATES ─────────────────────────────────────────────────
+// Lets anyone pencil in a date for a match before it's played — separate
+// from the actual played-on date, which only ever comes from a saved result.
+// Lives in Max's own project, same as Pressure, so it doesn't depend on Dan.
+let fixtureSchedule = {};
+
+function formatDateNice(iso){
+  if(!iso) return '';
+  const d = new Date(iso+'T00:00:00');
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'});
+}
+async function loadFixtureSchedule(){
+  try {
+    const rows = await maxDbFetch('fixture_schedule?select=*');
+    fixtureSchedule = {};
+    (rows||[]).forEach(r=>{ fixtureSchedule[r.fixture_id] = r.proposed_date; });
+  } catch(e) {
+    console.warn('Failed to load fixture schedule', e);
+  }
+}
+async function setFixtureDate(fixtureId, date){
+  fixtureSchedule[fixtureId] = date;
+  renderFixtures(currentWeekFilter);
+  try {
+    await maxDbFetch('fixture_schedule', {
+      method:'POST', prefer:'resolution=merge-duplicates',
+      body: JSON.stringify({ fixture_id:fixtureId, proposed_date:date, updated_at:new Date().toISOString() })
+    });
+  } catch(e) {
+    console.warn('Failed to save date', e);
+    showToast('Could not save date — check connection', 'error');
+  }
+}
+async function clearFixtureDate(fixtureId){
+  delete fixtureSchedule[fixtureId];
+  renderFixtures(currentWeekFilter);
+  try {
+    await maxDbFetch(`fixture_schedule?fixture_id=eq.${fixtureId}`, { method:'DELETE' });
+  } catch(e) {
+    console.warn('Failed to remove date', e);
+    showToast('Could not remove date — check connection', 'error');
+  }
+}
+function openDateModal(fixtureId){
+  if (currentSeasonKey !== 's3') return;
+  const modal = document.getElementById('dateModal');
+  modal.dataset.target = fixtureId;
+  const existing = fixtureSchedule[fixtureId] || '';
+  document.getElementById('dateModalInput').value = existing;
+  document.getElementById('dateModalClear').style.display = existing ? 'inline-block' : 'none';
+  modal.classList.add('show');
+}
+function closeDateModal(){
+  document.getElementById('dateModal').classList.remove('show');
+}
+function confirmSetDate(){
+  const modal = document.getElementById('dateModal');
+  const fixtureId = modal.dataset.target;
+  const date = document.getElementById('dateModalInput').value;
+  if(!date){ showToast('Please pick a date', 'error'); return; }
+  closeDateModal();
+  setFixtureDate(fixtureId, date);
+}
+function clearDateFromModal(){
+  const modal = document.getElementById('dateModal');
+  const fixtureId = modal.dataset.target;
+  closeDateModal();
+  clearFixtureDate(fixtureId);
 }
 
 function renderTable(){
@@ -1751,13 +1851,24 @@ function renderAll(){
     showToast('Could not connect to database','error');
   }
   await loadPressure();
+  await loadFixtureSchedule();
   document.getElementById('loading').classList.add('hidden');
   renderAll();
 
-  // Pressure is meant to feel live — quiet refresh so everyone sees the same
-  // fires burning, without needing to touch the rest of the site's data.
-  setInterval(async()=>{ await loadPressure(); renderTable(); }, 20000);
-  window.addEventListener('focus', async()=>{ await loadPressure(); renderTable(); });
+  // Pressure and proposed dates are both meant to feel live — quiet refresh
+  // so everyone sees the same thing, without needing to touch match results.
+  setInterval(async()=>{
+    await loadPressure();
+    await loadFixtureSchedule();
+    renderTable();
+    renderFixtures(currentWeekFilter);
+  }, 20000);
+  window.addEventListener('focus', async()=>{
+    await loadPressure();
+    await loadFixtureSchedule();
+    renderTable();
+    renderFixtures(currentWeekFilter);
+  });
 })();
 </script>
 

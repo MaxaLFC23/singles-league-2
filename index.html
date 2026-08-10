@@ -1224,7 +1224,7 @@ function runOddsSimulations(iterations=4000){
   const strength = computeBradleyTerryRatings();
   const baseFixtures = getSeason3FixturesLive();
   const stats = {};
-  SEASON_3_PLAYERS.forEach(p => stats[p] = {winLeague:0, top3:0, playoffs:0, woodenSpoon:0, playoffChampion:0});
+  SEASON_3_PLAYERS.forEach(p => stats[p] = {winLeague:0, top3:0, playoffs:0, woodenSpoon:0, elshitico:0, playoffChampion:0});
 
   for (let i=0; i<iterations; i++){
     const simFixtures = baseFixtures.map(f=>{
@@ -1238,6 +1238,7 @@ function runOddsSimulations(iterations=4000){
     order.slice(0,3).forEach(n=>stats[n].top3++);
     order.slice(0,7).forEach(n=>stats[n].playoffs++);
     stats[order[order.length-1]].woodenSpoon++;
+    order.slice(-2).forEach(n=>stats[n].elshitico++);
     const champion = simulatePlayoffChampion(order, strength);
     stats[champion].playoffChampion++;
   }
@@ -1249,6 +1250,7 @@ function runOddsSimulations(iterations=4000){
       top3: stats[p].top3/iterations,
       playoffs: stats[p].playoffs/iterations,
       woodenSpoon: stats[p].woodenSpoon/iterations,
+      elshitico: stats[p].elshitico/iterations,
       playoffChampion: stats[p].playoffChampion/iterations,
     };
   });
@@ -1965,6 +1967,7 @@ function renderOdds(){
         <td class="num">${formatOdds(o.top3).pct}</td>
         <td class="num">${formatOdds(o.playoffs).pct}</td>
         <td class="num">${formatOdds(o.woodenSpoon).pct}</td>
+        <td class="num">${formatOdds(o.elshitico).pct}</td>
       </tr>`;
   }).join('');
 
@@ -2009,7 +2012,7 @@ function renderOdds(){
     <div class="odds-section">
       <div class="odds-section-title">📋 Finishing Position Summary</div>
       <table class="odds-summary-table">
-        <thead><tr><th>Player</th><th class="num">Top 3</th><th class="num">Playoffs</th><th class="num">Wooden Spoon</th></tr></thead>
+        <thead><tr><th>Player</th><th class="num">Top 3</th><th class="num">Playoffs</th><th class="num">Wooden Spoon</th><th class="num">⚔️ El Shitico</th></tr></thead>
         <tbody>${summaryHtml}</tbody>
       </table>
     </div>

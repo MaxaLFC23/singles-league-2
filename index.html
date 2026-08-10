@@ -336,6 +336,35 @@
   .ff-photo-wrap .avatar { font-size: 24px; font-weight: 700; }
   .ff-name { font-family: 'Oswald', 'Bebas Neue', sans-serif; font-weight: 600; font-size: 17px; color: var(--text); letter-spacing: 0.5px; }
   .ff-left-badge { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted); font-style: italic; }
+
+  .odds-disclaimer { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; line-height: 1.5; }
+  .odds-section { margin-bottom: 28px; }
+  .odds-section-title { font-family: 'Oswald', 'Bebas Neue', sans-serif; font-size: 18px; font-weight: 600; color: var(--text); letter-spacing: 0.5px; margin-bottom: 12px; }
+  .odds-list { display: flex; flex-direction: column; gap: 6px; }
+  .odds-row { display: grid; grid-template-columns: 130px 1fr 48px 52px; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; }
+  .odds-player { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .odds-bar-wrap { background: var(--bg); border-radius: 4px; overflow: hidden; height: 10px; }
+  .odds-bar { height: 100%; border-radius: 4px; transition: width .3s; }
+  .odds-pct { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--accent); text-align: right; }
+  .odds-frac { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); text-align: right; }
+  .odds-summary-table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .odds-summary-table th { text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .odds-summary-table th.num, .odds-summary-table td.num { text-align: right; }
+  .odds-summary-table td { padding: 8px 14px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text); }
+  .odds-summary-table tr:last-child td { border-bottom: none; }
+  .odds-week-block { margin-bottom: 18px; }
+  .odds-week-header { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
+  .fixture-odds-row { display: grid; grid-template-columns: 1fr 30px 1fr; align-items: center; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; margin-bottom: 6px; }
+  .fixture-odds-side { display: flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; }
+  .fixture-odds-side-away { justify-content: flex-end; }
+  .fixture-odds-name { font-weight: 600; font-size: 13px; color: var(--text); }
+  .fixture-odds-pct { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--accent); }
+  .fixture-odds-frac { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); }
+  .fixture-odds-vs { text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; }
+  @media (max-width: 700px) {
+    .odds-row { grid-template-columns: 100px 1fr 40px 44px; gap: 8px; }
+    .odds-player span { display: none; }
+  }
   .hof-avatar { width: 52px; height: 52px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #000; }
 
   .hof-wins-bar { margin-top: 32px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 20px; }
@@ -388,6 +417,7 @@
   <button class="tab" onclick="showSection('playoffs',this)">Playoffs</button>
   <button class="tab" onclick="showSection('halloffame',this)">Hall of Fame</button>
   <button class="tab" onclick="showSection('foundingfathers',this)">🏆 Founding Fathers</button>
+  <button class="tab" onclick="showSection('odds',this)">📊 Odds</button>
   <button class="tab" onclick="showSection('seasonstats',this)">Season Stats</button>
 </div>
 
@@ -446,6 +476,10 @@
 
   <div id="foundingfathers" class="section">
     <div id="founding-fathers-content"></div>
+  </div>
+
+  <div id="odds" class="section">
+    <div id="odds-content"></div>
   </div>
 
   <div id="seasonstats" class="section">
@@ -624,6 +658,15 @@ function getFixtures() {
              : {...f, winner:null, homeScore:null, awayScore:null, checkout:null, homeAvg:null, awayAvg:null, date:'', referee:'', refRating:0, refReview:'', updatedAt:null, scheduledDate};
   });
 }
+// Odds are always about the real, live Season 3 — regardless of which
+// season the person currently has selected in the switcher elsewhere.
+function getSeason3FixturesLive() {
+  return BASE_FIXTURES.map(f => {
+    const r = dbResults[f.id];
+    return r ? {...f, winner:r.winner, homeScore:r.home_score, awayScore:r.away_score, checkout:r.checkout, homeAvg:r.home_avg, awayAvg:r.away_avg}
+             : {...f, winner:null, homeScore:null, awayScore:null, checkout:null, homeAvg:null, awayAvg:null};
+  });
+}
 
 // Resolve playoff fixtures — fills home/away from current standings + previous playoff results
 function getPlayoffFixtures() {
@@ -690,10 +733,9 @@ async function seedIfNeeded() {
 }
 
 // ─── STANDINGS ────────────────────────────────────────────────────────────────
-function computeStandings(fixtureFilter) {
-  const fixtures = getFixtures().filter(f => !fixtureFilter || fixtureFilter(f));
+function computeStandingsPure(fixtures, players) {
   const stats = {};
-  PLAYERS.forEach(p => { stats[p] = {name:p,p:0,w:0,l:0,d:0,pts:0,avgSum:0,avgCount:0,ck:0,ckTotal:0,highCk:0}; });
+  players.forEach(p => { stats[p] = {name:p,p:0,w:0,l:0,d:0,pts:0,avgSum:0,avgCount:0,ck:0,ckTotal:0,highCk:0}; });
   fixtures.forEach(f => {
     if (f.home==='BYE'||f.away==='BYE'||(!f.winner&&!f.isDraw)) return;
     const h=stats[f.home], a=stats[f.away];
@@ -710,9 +752,8 @@ function computeStandings(fixtureFilter) {
     if (f.awayAvg){a.avgSum+=f.awayAvg;a.avgCount++;}
   });
 
-  const players = PLAYERS.map(p=>{const s=stats[p];return{...s,avg:s.avgCount>0?s.avgSum/s.avgCount:0};});
+  const playerStats = players.map(p=>{const s=stats[p];return{...s,avg:s.avgCount>0?s.avgSum/s.avgCount:0};});
 
-  // Head-to-head: returns 1 if a wins h2h, -1 if b wins, 0 if draw
   function h2h(nameA, nameB) {
     let aWins=0, bWins=0;
     fixtures.forEach(f => {
@@ -728,19 +769,18 @@ function computeStandings(fixtureFilter) {
     return 0;
   }
 
-  return players.sort((a,b) => {
-    // 1. Points
+  return playerStats.sort((a,b) => {
     if (b.pts !== a.pts) return b.pts - a.pts;
-    // 2. Head-to-head
     const h = h2h(a.name, b.name);
     if (h !== 0) return -h;
-    // 3. Checkout count
     if (b.ck !== a.ck) return b.ck - a.ck;
-    // 4. Checkout total
     if (b.ckTotal !== a.ckTotal) return b.ckTotal - a.ckTotal;
-    // 5. Average
     return b.avg - a.avg;
   });
+}
+function computeStandings(fixtureFilter) {
+  const fixtures = getFixtures().filter(f => !fixtureFilter || fixtureFilter(f));
+  return computeStandingsPure(fixtures, PLAYERS);
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -1087,6 +1127,134 @@ function renderFixtures(weekFilter) {
 }
 
 // ─── RENDER TABLE ────────────────────────────────────────────────────────────
+// ─── ODDS ENGINE ────────────────────────────────────────────────────────────
+// Bradley-Terry player-strength model, fitted on every completed match across
+// Season 1, Season 2, and the live Season 3 — the two side-cup competitions
+// (Christmas Cup, Couples Cup) are deliberately excluded: one is team-based
+// so it can't map to individual strength, the other only has a bracket
+// diagram with no reliable scores to infer results from.
+function computeBradleyTerryRatings() {
+  const winsAgainst = {}; // winsAgainst[i][j] = effective wins of i over j (draws = 0.5 each)
+  const allPlayers = new Set();
+
+  function addFixtures(fixtures) {
+    fixtures.forEach(f => {
+      if (f.home==='BYE'||f.away==='BYE') return;
+      if (!f.winner && !f.isDraw) return;
+      allPlayers.add(f.home); allPlayers.add(f.away);
+      winsAgainst[f.home] = winsAgainst[f.home] || {};
+      winsAgainst[f.away] = winsAgainst[f.away] || {};
+      if (f.isDraw) {
+        winsAgainst[f.home][f.away] = (winsAgainst[f.home][f.away]||0) + 0.5;
+        winsAgainst[f.away][f.home] = (winsAgainst[f.away][f.home]||0) + 0.5;
+      } else {
+        const loser = f.winner===f.home ? f.away : f.home;
+        winsAgainst[f.winner][loser] = (winsAgainst[f.winner][loser]||0) + 1;
+      }
+    });
+  }
+  addFixtures(SEASON_1_FIXTURES);
+  addFixtures(SEASON_2_FIXTURES);
+  addFixtures(getSeason3FixturesLive());
+
+  const players = Array.from(allPlayers);
+  const totalWins = {};
+  players.forEach(p => { totalWins[p] = Object.values(winsAgainst[p]||{}).reduce((a,b)=>a+b,0); });
+
+  let strength = {};
+  players.forEach(p => strength[p] = 1);
+
+  // Minorization-maximization fit — standard, stable way to solve Bradley-Terry.
+  for (let iter=0; iter<200; iter++) {
+    const next = {};
+    players.forEach(i => {
+      let denom = 0;
+      players.forEach(j => {
+        if (i===j) return;
+        const games = (winsAgainst[i]?.[j]||0) + (winsAgainst[j]?.[i]||0);
+        if (games>0) denom += games / (strength[i]+strength[j]);
+      });
+      next[i] = denom>0 ? totalWins[i]/denom : strength[i];
+    });
+    const geoMean = Math.exp(players.reduce((a,p)=>a+Math.log(next[p]||1e-9),0)/players.length);
+    players.forEach(p => next[p] = next[p]/geoMean);
+    strength = next;
+  }
+  return strength;
+}
+function winProbability(strengthA, strengthB) {
+  const sa = strengthA||1, sb = strengthB||1;
+  return sa/(sa+sb);
+}
+const ODDS_LADDER = [
+  [1,20],[1,16],[1,12],[1,10],[1,8],[1,6],[1,5],[1,4],[2,7],[1,3],[2,5],[4,9],[1,2],[4,7],[8,13],[4,6],[5,6],[10,11],
+  [1,1],
+  [11,10],[6,5],[5,4],[11,8],[6,4],[13,8],[7,4],[15,8],
+  [2,1],[9,4],[5,2],[11,4],[3,1],[7,2],[4,1],[9,2],[5,1],[11,2],[6,1],[13,2],[7,1],[15,2],[8,1],[9,1],[10,1],[12,1],[14,1],[16,1],[20,1],[25,1],[33,1],[50,1]
+];
+function probToFraction(prob){
+  const p = Math.min(0.99, Math.max(0.01, prob));
+  const against = (1-p)/p; // e.g. 0.5 -> evens (1/1), 0.25 -> 3/1
+  let best = ODDS_LADDER[0], bestErr = Infinity;
+  ODDS_LADDER.forEach(([n,d]) => {
+    const err = Math.abs(against - n/d);
+    if (err < bestErr) { bestErr = err; best = [n,d]; }
+  });
+  return `${best[0]}/${best[1]}`;
+}
+function formatOdds(prob){
+  const pct = Math.round(Math.min(0.99,Math.max(0.01,prob))*100);
+  return { pct: pct+'%', frac: probToFraction(prob) };
+}
+
+// Monte Carlo: simulate the rest of Season 3 thousands of times using the
+// Bradley-Terry probabilities, applying the exact same tiebreak rules as the
+// real League Table, then run the actual playoff bracket structure on top.
+function simulatePlayoffChampion(standingOrder, strength){
+  function beat(a,b){ return Math.random() < winProbability(strength[a], strength[b]) ? a : b; }
+  const s = standingOrder;
+  const qf1 = beat(s[1], s[6]);
+  const qf2 = beat(s[2], s[5]);
+  const qf3 = beat(s[3], s[4]);
+  const sf1 = beat(s[0], qf1);
+  const sf2 = beat(qf2, qf3);
+  return beat(sf1, sf2);
+}
+function runOddsSimulations(iterations=4000){
+  const strength = computeBradleyTerryRatings();
+  const baseFixtures = getSeason3FixturesLive();
+  const stats = {};
+  SEASON_3_PLAYERS.forEach(p => stats[p] = {winLeague:0, top3:0, playoffs:0, woodenSpoon:0, playoffChampion:0});
+
+  for (let i=0; i<iterations; i++){
+    const simFixtures = baseFixtures.map(f=>{
+      if (f.home==='BYE'||f.away==='BYE'||f.winner||f.isDraw) return f;
+      const winner = Math.random() < winProbability(strength[f.home], strength[f.away]) ? f.home : f.away;
+      return {...f, winner, homeScore: winner===f.home?1:0, awayScore: winner===f.away?1:0};
+    });
+    const standings = computeStandingsPure(simFixtures, SEASON_3_PLAYERS);
+    const order = standings.map(s=>s.name);
+    stats[order[0]].winLeague++;
+    order.slice(0,3).forEach(n=>stats[n].top3++);
+    order.slice(0,7).forEach(n=>stats[n].playoffs++);
+    stats[order[order.length-1]].woodenSpoon++;
+    const champion = simulatePlayoffChampion(order, strength);
+    stats[champion].playoffChampion++;
+  }
+
+  const result = {};
+  SEASON_3_PLAYERS.forEach(p => {
+    result[p] = {
+      winLeague: stats[p].winLeague/iterations,
+      top3: stats[p].top3/iterations,
+      playoffs: stats[p].playoffs/iterations,
+      woodenSpoon: stats[p].woodenSpoon/iterations,
+      playoffChampion: stats[p].playoffChampion/iterations,
+    };
+  });
+  return { odds: result, strength, iterations };
+}
+
 function moveArrow(delta, betterWhenHigher){
   if(!delta) return '<span class="move move-flat">–</span>';
   const improved = betterWhenHigher ? delta>0 : delta<0;
@@ -1764,6 +1932,100 @@ function renderFoundingFathers() {
     <div class="ff-grid">${cardsHtml}</div>`;
 }
 
+// ─── ODDS TAB ───────────────────────────────────────────────────────────────
+function oddsRow(name, prob){
+  const o = formatOdds(prob);
+  const color = SEASON_3_COLORS[name] || COLORS[name] || '#888';
+  return `
+    <div class="odds-row">
+      <div class="odds-player">${avatarHtmlColored(name,color,26)}<span>${name}</span></div>
+      <div class="odds-bar-wrap"><div class="odds-bar" style="width:${Math.max(2,prob*100)}%;background:${color}"></div></div>
+      <div class="odds-pct">${o.pct}</div>
+      <div class="odds-frac">${o.frac}</div>
+    </div>`;
+}
+function renderOdds(){
+  const container = document.getElementById('odds-content');
+  if (!container) return;
+  const { odds, strength, iterations } = runOddsSimulations();
+
+  const byWinLeague = [...SEASON_3_PLAYERS].sort((a,b)=>odds[b].winLeague-odds[a].winLeague);
+  const byChampion = [...SEASON_3_PLAYERS].sort((a,b)=>odds[b].playoffChampion-odds[a].playoffChampion);
+  const byPlayoffs = [...SEASON_3_PLAYERS].sort((a,b)=>odds[b].playoffs-odds[a].playoffs);
+
+  const winLeagueHtml = byWinLeague.map(p=>oddsRow(p, odds[p].winLeague)).join('');
+  const championHtml = byChampion.map(p=>oddsRow(p, odds[p].playoffChampion)).join('');
+
+  const summaryHtml = byPlayoffs.map(name=>{
+    const o = odds[name];
+    const color = SEASON_3_COLORS[name] || COLORS[name] || '#888';
+    return `
+      <tr>
+        <td><div class="odds-player">${avatarHtmlColored(name,color,24)}<span>${name}</span></div></td>
+        <td class="num">${formatOdds(o.top3).pct}</td>
+        <td class="num">${formatOdds(o.playoffs).pct}</td>
+        <td class="num">${formatOdds(o.woodenSpoon).pct}</td>
+      </tr>`;
+  }).join('');
+
+  // Fixture odds — every remaining (unplayed, non-bye) fixture for the rest
+  // of the season, grouped by week.
+  const liveFixtures = getSeason3FixturesLive();
+  const remaining = liveFixtures.filter(f=>f.home!=='BYE'&&f.away!=='BYE'&&!f.winner&&!f.isDraw);
+  const weeks = [...new Set(remaining.map(f=>f.week))].sort((a,b)=>a-b);
+  const fixtureOddsHtml = weeks.length ? weeks.map(w=>{
+    const rows = remaining.filter(f=>f.week===w).map(f=>{
+      const pHome = winProbability(strength[f.home], strength[f.away]);
+      const pAway = 1-pHome;
+      const oh = formatOdds(pHome), oa = formatOdds(pAway);
+      return `
+        <div class="fixture-odds-row">
+          <div class="fixture-odds-side">
+            <span class="fixture-odds-name">${f.home}</span>
+            <span class="fixture-odds-pct">${oh.pct}</span>
+            <span class="fixture-odds-frac">${oh.frac}</span>
+          </div>
+          <div class="fixture-odds-vs">v</div>
+          <div class="fixture-odds-side fixture-odds-side-away">
+            <span class="fixture-odds-frac">${oa.frac}</span>
+            <span class="fixture-odds-pct">${oa.pct}</span>
+            <span class="fixture-odds-name">${f.away}</span>
+          </div>
+        </div>`;
+    }).join('');
+    return `<div class="odds-week-block"><div class="odds-week-header">Week ${w}</div>${rows}</div>`;
+  }).join('') : `<div class="week-empty">No fixtures left to price up — the season's done!</div>`;
+
+  container.innerHTML = `
+    <div class="odds-disclaimer">
+      📊 Built from a Bradley-Terry strength model fitted across Seasons 1–3 (${iterations.toLocaleString()} simulations per refresh) — updates automatically every time a result goes in. For banter, not betting.
+    </div>
+
+    <div class="odds-section">
+      <div class="odds-section-title">🏆 League Winner</div>
+      <div class="odds-list">${winLeagueHtml}</div>
+    </div>
+
+    <div class="odds-section">
+      <div class="odds-section-title">📋 Finishing Position Summary</div>
+      <table class="odds-summary-table">
+        <thead><tr><th>Player</th><th class="num">Top 3</th><th class="num">Playoffs</th><th class="num">Wooden Spoon</th></tr></thead>
+        <tbody>${summaryHtml}</tbody>
+      </table>
+    </div>
+
+    <div class="odds-section">
+      <div class="odds-section-title">🎯 Playoff Champion</div>
+      <div class="odds-list">${championHtml}</div>
+    </div>
+
+    <div class="odds-section">
+      <div class="odds-section-title">🔮 Fixture Odds — Remaining Season</div>
+      ${fixtureOddsHtml}
+    </div>
+  `;
+}
+
 // ─── THEME ────────────────────────────────────────────────────────────────────
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light');
@@ -1836,6 +2098,7 @@ function renderAll(){
   renderPlayoffs();
   renderHallOfFame();
   renderFoundingFathers();
+  renderOdds();
   renderSeasonStats();
 }
 

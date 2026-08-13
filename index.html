@@ -2124,17 +2124,19 @@ function renderAll(){
 
   // Pressure and proposed dates are both meant to feel live — quiet refresh
   // so everyone sees the same thing, without needing to touch match results.
+  // Crucially: never rebuild the fixtures list while someone has a result
+  // form open — that was wiping people's in-progress typing mid-entry.
   setInterval(async()=>{
     await loadPressure();
     await loadFixtureSchedule();
     renderTable();
-    renderFixtures(currentWeekFilter);
+    if (!openFormId) renderFixtures(currentWeekFilter);
   }, 20000);
   window.addEventListener('focus', async()=>{
     await loadPressure();
     await loadFixtureSchedule();
     renderTable();
-    renderFixtures(currentWeekFilter);
+    if (!openFormId) renderFixtures(currentWeekFilter);
   });
 })();
 </script>

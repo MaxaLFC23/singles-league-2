@@ -714,8 +714,9 @@ function getPlayoffFixtures() {
 
   return fixtures.map(f => {
     const r = dbResults[f.id];
-    return r ? {...f, winner:r.winner, homeScore:r.home_score, awayScore:r.away_score, checkout:r.checkout, homeAvg:r.home_avg, awayAvg:r.away_avg, date:r.date_played||'', referee:r.referee||'', refRating:r.ref_rating||0, refReview:r.ref_review||'', isPlayoff:true}
-             : {...f, winner:null, homeScore:null, awayScore:null, checkout:null, homeAvg:null, awayAvg:null, date:'', referee:'', refRating:0, refReview:'', isPlayoff:true};
+    const scheduledDate = fixtureSchedule[f.id] || null;
+    return r ? {...f, winner:r.winner, homeScore:r.home_score, awayScore:r.away_score, checkout:r.checkout, homeAvg:r.home_avg, awayAvg:r.away_avg, date:r.date_played||'', referee:r.referee||'', refRating:r.ref_rating||0, refReview:r.ref_review||'', isPlayoff:true, scheduledDate}
+             : {...f, winner:null, homeScore:null, awayScore:null, checkout:null, homeAvg:null, awayAvg:null, date:'', referee:'', refRating:0, refReview:'', isPlayoff:true, scheduledDate};
   });
 }
 
